@@ -1,0 +1,603 @@
+%
+% pscircuit.sty ver 1.0.2
+%
+% copyright(c) threegirls89 2013-2017.
+%
+% \TeXで回路図を描くためのmacro集.
+%
+\NeedsTeXFormat{LaTeX2e}%
+\ProvidesPackage{pscircuit}[2017/5/25 ver.1.0.2 threegirls89]%
+\def\j@urnalname{pscircuit}
+\def\versi@ndate{May. 25, 2017}
+\def\versi@nno{ver1.0.2}
+\def\copyrighth@lder{threegirls89}
+\typeout{Option Style `\j@urnalname' (\versi@nno) <\versi@ndate>\space [\copyrighth@lder]}
+\typeout{Macros to draw circuit diagrams with EPS and LaTeX.}
+%
+\RequirePackage{pscepspreamble}
+\@ifundefined{includegraphics}{\errmessage{graphicx.styが必要です}}{}
+%
+% %, #を文字として扱う.
+\bgroup
+\catcode37=11
+\gdef\@pc{%}
+\egroup
+\bgroup
+\catcode35=11
+\gdef\@perl@hash{#}
+\egroup
+%
+\def\psc@epssuffix{-c}
+%
+\newdimen\ps@width
+\newdimen\ps@xmin
+\newdimen\ps@ymin
+\newdimen\ps@xmax
+\newdimen\ps@ymax
+\newdimen\ps@width
+\newdimen\ul@ps
+%
+\global\newwrite\psc@epsfile
+\newcounter{psc@epsnum}
+%ptを取り去る.
+\begingroup
+	\catcode`P=12
+	\catcode`T=12
+	\lowercase{
+	\def\x{\def\rem@pt##1.##2PT{##1\ifnum##2>\z@.##2\fi}}}
+	\expandafter\endgroup\x
+\def\rmpt{\expandafter\rem@pt\the}
+%ptを取り去る整数部分.
+\begingroup
+	\catcode`P=12
+	\catcode`T=12
+	\lowercase{
+	\def\x{\def\rem@int##1.##2PT{##1}}}
+	\expandafter\endgroup\x
+\def\rmptint{\expandafter\rem@int\the}
+%
+% texによる小数演算.
+\newdimen\psc@tempadd
+\def\psc@add#1#2#3{%
+\psc@tempadd=#1\p@
+\advance \psc@tempadd #2\p@
+\xdef#3{\rmpt\psc@tempadd}%
+}
+\def\psc@sub#1#2#3{%
+\psc@tempadd=#1\p@
+\advance \psc@tempadd -#2\p@
+\xdef#3{\rmpt\psc@tempadd}%
+}
+%
+\def\psc@mul#1#2#3{%
+\psc@tempadd=#1\p@
+\psc@tempadd=#2\psc@tempadd
+\xdef#3{\rmpt\psc@tempadd}%
+}
+%未使用. 割り算では, #2は整数でなければならない. 実装法が悪いのか知ら.
+\def\psc@div#1#2#3{%
+\psc@tempadd=#1\p@
+\divide \psc@tempadd #2
+\xdef#3{\rmpt\psc@tempadd}%
+}
+%整数部分的(#1>=0ならばfloor, #1<0ならばceiling)
+\def\psc@@integer#1.#2.{#1}
+\def\psc@integer#1#2{%
+	\newif\ifdecimal%
+	\decimalfalse%
+	\expandafter\@tfor\expandafter\@ch\expandafter:\expandafter=#1\do{\if\@ch.\decimaltrue\fi}%
+	\ifdecimal
+		\xdef#2{\expandafter\psc@@integer#1.}%
+	\else
+		\xdef#2{#1}%
+	\fi%
+}
+%Floor function.
+\def\psc@floor#1#2{%
+\newif\ifdecimal%
+\decimalfalse%
+\expandafter\@tfor\expandafter\@ch\expandafter:\expandafter=#1\do{\if\@ch.\decimaltrue\fi}%
+\ifdecimal
+\@tempdima=#1\p@%
+\psc@integer{#1}{\@int}%
+\ifnum\@tempdima<0
+\psc@sub{\@int}{1}{#2}%
+\else
+\xdef#2{\@int}%
+\fi%
+\else
+\xdef#2{#1}%
+\fi%
+}
+%Ceiling function.
+\def\psc@ceiling#1#2{%
+\newif\ifdecimal%
+\decimalfalse%
+\expandafter\@tfor\expandafter\@ch\expandafter:\expandafter=#1\do{\if\@ch.\decimaltrue\fi}%
+\ifdecimal
+\@tempdima=#1\p@%
+\psc@integer{#1}{\@int}%
+\ifnum\@tempdima<0
+\xdef#2{\@int}%
+\else
+\psc@add{\@int}{1}{#2}%
+\fi%
+\else
+\xdef#2{#1}%
+\fi%
+}
+% 各種文字サイズ
+\def\strsize{\@ifnextchar[{\psc@setstrsize}{\psc@@setstrsize}}
+\def\psc@setstrsize[#1]{\def\psc@strsize{\fontsize{#1}{0pt}\selectfont}}
+\def\psc@@setstrsize#1{\def\psc@strsize{#1}}
+%
+\def\pinnumsize{\@ifnextchar[{\@setpinnumsize}{\psc@@setpinnumsize}}
+\def\@setpinnumsize[#1]{\def\psc@pinnumsize{\fontsize{#1}{0pt}\selectfont}}
+\def\psc@@setpinnumsize#1{\def\psc@pinnumsize{#1}}
+%
+\def\pinnamesize{\@ifnextchar[{\@setpinnamesize}{\psc@@setpinnamesize}}
+\def\@setpinnamesize[#1]{\def\psc@pinnamesize{\fontsize{#1}{0pt}\selectfont}}
+\def\psc@@setpinnamesize#1{\def\psc@pinnamesize{#1}}
+%
+% 線の太さ
+\def\setlinewidth#1{%
+\edef\@linewidth{#1}%
+\immediate\write\psc@epsfile{#1 \rmpt\ul@ps\space div setlinewidth}%
+}
+%
+%%%% pscircuit環境の本体. 実態はpicture環境にepsを重ねるだけ. %%%%
+%Arguments; #1: 単位長(単位付寸法), (#2,#3): 左下座標, (#4,#5): 右上座標.
+\def\pscircuit[#1](#2,#3)(#4,#5){%
+%
+%各種サイズをリセット.
+\def\psc@jointsize{0.25}%
+\def\psc@termsize{0.5}%
+\def\psc@strsize{\footnotesize}%
+\def\psc@pinnumsize{\scriptsize}%
+\def\psc@pinnamesize{\scriptsize}%
+\def\psc@pinnumx{0}%
+\def\psc@pinnumy{0}%
+\def\psc@pinnamex{0}%
+\def\psc@pinnamey{0}%
+\def\psc@xoffset{0}%
+\def\psc@yoffset{0}%
+\gdef\pic@xmin{#2}%
+\gdef\pic@ymin{#3}%
+\gdef\pic@xmax{#4}%
+\gdef\pic@ymax{#5}%
+\psc@sub{\pic@xmax}{\pic@xmin}{\pic@width}%
+\psc@sub{\pic@ymax}{\pic@ymin}{\pic@height}%
+\unitlength=#1%
+%\ul@ps=0.996264\unitlength%
+\ul@ps=\unitlength%
+\ps@xmin=\pic@xmin\ul@ps%
+\ps@ymin=\pic@ymin\ul@ps%
+\ps@xmax=\pic@xmax\ul@ps%
+\ps@ymax=\pic@ymax\ul@ps%
+%
+\edef\ps@@xmin{\rmpt\ps@xmin}%
+\edef\ps@@xmax{\rmpt\ps@xmax}%
+\edef\ps@@ymin{\rmpt\ps@ymin}%
+\edef\ps@@ymax{\rmpt\ps@ymax}%
+\psc@floor{\ps@@xmin}{\ps@@@xmin}%
+\psc@ceiling{\ps@@xmax}{\ps@@@xmax}%
+\psc@floor{\ps@@ymin}{\ps@@@ymin}%
+\psc@ceiling{\ps@@ymax}{\ps@@@ymax}%
+\ps@width=-\ps@xmin%
+\advance \ps@width \ps@xmax%
+\refstepcounter{psc@epsnum}%
+\immediate\openout\psc@epsfile=\jobname\psc@epssuffix\thepsc@epsnum.eps%
+\immediate\write\psc@epsfile{\@pc !PS-Adobe-3.0 EPSF-3.0}%
+\immediate\write\psc@epsfile{\@pc\@pc BoundingBox: \ps@@@xmin\space\ps@@@ymin\space\ps@@@xmax\space\ps@@@ymax}%
+\immediate\write\psc@epsfile{\@pc\@pc HiResBoundingBox: \ps@@xmin\space\ps@@ymin\space\ps@@xmax\space\ps@@ymax}%
+\immediate\write\psc@epsfile{\rmpt\ul@ps\space \rmpt\ul@ps\space scale}%
+\setlinewidth{0.5}%
+%
+% Definition of circuit elements written by PS. Impremented in pscepspreamble.sty.
+\@pscepspreamble%
+\ifx\@pscelementseps\undefined\else\@pscelementseps\fi%
+%
+\begin{picture}(\pic@width,\pic@height)(\pic@xmin,\pic@ymin)%
+}
+\def\endpscircuit{%
+\immediate\write\psc@epsfile{\@pc\@pc EOF}%
+\immediate\closeout\psc@epsfile%
+\put(\pic@xmin,\pic@ymin){\includegraphics[width=\ps@width,hiresbb]{\jobname\psc@epssuffix\thepsc@epsnum.eps}}%
+\end{picture}%
+}
+%
+%配線. 書式は\wire(x_1,y_1)(x_2,y_2)...(x_n,y_n) 与えた点列を順に直線で結ぶ.
+\def\wire{%
+\@ifstar{\psc@relwire}{\psc@abswire}%
+}
+\def\psc@abswire(#1,#2){%
+\immediate\write\psc@epsfile{newpath #1 #2 moveto}%
+\psc@@abswire%
+}
+\def\psc@@abswire(#1,#2){%
+\immediate\write\psc@epsfile{#1 #2 lineto}%
+\@ifnextchar({\psc@@abswire}{\immediate\write\psc@epsfile{1 setlinecap stroke 0 setlinecap}}%
+}
+\def\psc@relwire(#1,#2){%
+\immediate\write\psc@epsfile{newpath #1 #2 moveto}%
+\psc@@relwire%
+}
+\def\psc@@relwire(#1,#2){%
+\immediate\write\psc@epsfile{#1 #2 rlineto}%
+\@ifnextchar({\psc@@relwire}{\immediate\write\psc@epsfile{1 setlinecap stroke 0 setlinecap}}%
+}
+%
+% 矢印 (#1,#2): 始点座標. (#3,#4): 終点座標. #5: 矢の方向からの開き角度. #6: 鏃の長さ.
+\def\arrow(#1,#2)(#3,#4)#5#6{%
+\@ifnextchar[{\psc@arrow(#1,#2)(#3,#4){#5}{#6}}{\immediate\write\psc@epsfile{#1 #2 #3 #4 #5 #6 1 arrow}}%
+}
+\def\psc@arrow(#1,#2)(#3,#4)#5#6[#7]{% #7: 鏃の出方. 1 終点のみ. 2 始点のみ. 3 両方.
+\immediate\write\psc@epsfile{#1 #2 #3 #4 #5 #6 #7 arrow}%
+}
+%
+% 円. *付きは中を白で塗りつぶし
+\def\circle{%
+\@ifstar{\psc@circle{f}}{\psc@circle{s}}%
+}
+\def\psc@circle#1(#2,#3)#4{%
+\ifx#1f \immediate\write\psc@epsfile{gsave 1 setgray newpath #2 #3 #4 0 360 arc fill grestore} \fi
+\immediate\write\psc@epsfile{newpath #2 #3 #4 0 360 arc stroke}%
+}
+%
+% 長方形 #1: 座標指定法
+% c: 中心(#2,#3), 幅#4, 高さ#5
+% s: 左下(#2,#3), 幅#4, 高さ#5
+% p: 2点(#2,#3), (#4,#5)が張る長方形
+\def\rectangle{%
+\@ifnextchar[{\psc@rectangle}{\psc@rectangle[p]}
+}
+\def\psc@rectangle[#1](#2,#3)(#4,#5){%
+\immediate\write\psc@epsfile{(#1) #2 #3 #4 #5 rectangle}%
+}
+
+%
+%接続点, 端子サイズ変更.
+\def\jointsize#1{\edef\psc@jointsize{#1}}
+\def\termsize#1{\edef\psc@termsize{#1}}
+%
+\def\joint(#1,#2){% 接続点
+	\immediate\write\psc@epsfile{newpath #1 #2 \psc@jointsize\space 0 360 arc fill}%
+}
+%
+% 端子
+\def\term(#1,#2){%
+\immediate\write\psc@epsfile{newpath 1 setgray #1 #2 \psc@termsize\space 0 360 arc fill}%
+\immediate\write\psc@epsfile{newpath 0 setgray #1 #2 \psc@termsize\space 0 360 arc stroke}%
+}
+%
+%IC(draw a rectangle).
+%
+\def\IC{%
+\psc@rectangle[p]%
+}
+%
+%ICのpin, 番号, 名称表示, その他.
+%
+\def\pinnumoffset(#1,#2){\def\psc@pinnumx{#1} \def\psc@pinnumy{#2}}
+\def\pinnameoffset(#1,#2){\def\psc@pinnamex{#1} \def\psc@pinnamey{#2}}
+\def\pin(#1,#2)[#3]#4#5{%
+\@ifnextchar[{\psc@pin(#1,#2)[#3]{#4}{#5}}{\psc@pin(#1,#2)[#3]{#4}{#5}[]}
+}
+\def\pindcrsize{0.28}
+\def\pinlen{2}
+\def\psc@pin(#1,#2)[#3]#4#5[#6]{%(#1,#2): 座標, #3: pinを出す向き, #4: 番号, #5: 名称, #6: low active, edge triggerのflag.
+	\newif\if@nflag
+	\newif\if@eflag
+	\@nflagfalse
+	\@eflagfalse
+	\@tfor\@ch:=#6\do{%
+		\if\@ch n
+			\@nflagtrue
+		\else
+			\if\@ch e
+				\@eflagtrue
+			\fi
+		\fi%
+	}
+	\ifx#3r% 右にpinを出す.
+		\if@nflag
+			\immediate\write\psc@epsfile{newpath #1 \pindcrsize\space add #2 \pindcrsize\space 0 360 arc stroke}
+			\immediate\write\psc@epsfile{newpath #1 \pinlen\space add #2 moveto #1 \pindcrsize\space 2 mul add #2 lineto stroke}
+		\else
+			\immediate\write\psc@epsfile{newpath #1 #2 moveto \pinlen\space 0 rlineto stroke}
+		\fi
+		\if@eflag
+			\psc@add\psc@pinnamex{-0.875}\psc@pnamex
+			\immediate\write\psc@epsfile{newpath #1 \pindcrsize\space 2 mul sub #2 moveto \pindcrsize\space 2 mul \pindcrsize\space rlineto 0 \pindcrsize\space -2 mul rlineto closepath stroke}
+		\else
+			\psc@add\psc@pinnamex{-0.375}\psc@pnamex
+		\fi
+		\psc@add\psc@pinnumx{0.65}\psc@pnumx
+		\psc@add\psc@pinnumy{0.2}\psc@pnumy
+		\psc@add\psc@pinnamey{0}\psc@pnamey
+		\putstr(#1,#2)[lb](\psc@pnumx,\psc@pnumy){\psc@pinnumsize #4}
+		\putstr(#1,#2)[r](\psc@pnamex,\psc@pnamey){\psc@pinnamesize #5}
+	\else
+		\ifx#3l
+			\if@nflag
+				\immediate\write\psc@epsfile{newpath #1 \pindcrsize\space sub #2 \pindcrsize\space 0 360 arc stroke}
+				\immediate\write\psc@epsfile{newpath #1 \pinlen\space sub #2 moveto #1 \pindcrsize\space 2 mul sub #2 lineto stroke}
+			\else
+				\immediate\write\psc@epsfile{newpath #1 #2 moveto \pinlen\space -1 mul 0 rlineto stroke}
+			\fi
+			\if@eflag
+				\psc@add\psc@pinnamex{0.875}\psc@pnamex
+				\immediate\write\psc@epsfile{newpath #1 \pindcrsize\space 2 mul add #2 moveto \pindcrsize\space -2 mul \pindcrsize\space -1 mul rlineto 0 \pindcrsize\space 2 mul rlineto closepath stroke}
+			\else
+				\psc@add\psc@pinnamex{0.375}\psc@pnamex
+			\fi
+			\psc@add\psc@pinnumx{-0.65}\psc@pnumx
+			\psc@add\psc@pinnumy{0.2}\psc@pnumy
+			\psc@add\psc@pinnamey{0}\psc@pnamey
+			\putstr(#1,#2)[rb](\psc@pnumx,\psc@pnumy){\psc@pinnumsize #4}
+			\putstr(#1,#2)[l](\psc@pnamex,\psc@pnamey){\psc@pinnamesize #5}
+		\else
+			\ifx#3t
+				\if@nflag
+					\immediate\write\psc@epsfile{newpath #1 #2 \pindcrsize\space add \pindcrsize\space 0 360 arc stroke}
+					\immediate\write\psc@epsfile{newpath #1 #2 \pinlen\space add moveto #1 #2 \pindcrsize\space 2 mul add lineto stroke}
+					\psc@add\psc@pinnumy{0.6}\psc@pnumy
+				\else
+					\immediate\write\psc@epsfile{newpath #1 #2 moveto 0 \pinlen\space rlineto stroke}
+					\psc@add\psc@pinnumy{0.2}\psc@pnumy
+				\fi
+				\if@eflag
+					\psc@add\psc@pinnamey{-0.875}\psc@pnamey
+					\immediate\write\psc@epsfile{newpath #1 #2 \pindcrsize\space 2 mul sub moveto \pindcrsize\space \pindcrsize\space 2 mul rlineto \pindcrsize\space -2 mul 0 rlineto closepath stroke}
+				\else
+					\psc@add\psc@pinnamey{-0.375}\psc@pnamey
+				\fi
+				\psc@add\psc@pinnumx{0.25}\psc@pnumx
+				\psc@add\psc@pinnamex{0}\psc@pnamex
+				\putstr(#1,#2)[lb](\psc@pnumx,\psc@pnumy){\psc@pinnumsize #4}
+				\putstr(#1,#2)[t](\psc@pnamex,\psc@pnamey){\psc@pinnamesize #5}
+			\else
+				\ifx#3b
+					\if@nflag
+						\immediate\write\psc@epsfile{newpath #1 #2 \pindcrsize\space sub \pindcrsize\space 0 360 arc stroke}
+						\immediate\write\psc@epsfile{newpath #1 #2 \pinlen\space sub moveto #1 #2 \pindcrsize\space 2 mul sub lineto stroke}
+						\psc@add\psc@pinnumy{-0.6}\psc@pnumy
+					\else
+						\immediate\write\psc@epsfile{newpath #1 #2 moveto 0 \pinlen\space -1 mul rlineto stroke}
+						\psc@add\psc@pinnumy{-0.2}\psc@pnumy
+					\fi
+					\if@eflag
+						\psc@add\psc@pinnamey{0.875}\psc@pnamey
+						\immediate\write\psc@epsfile{newpath #1 #2 \pindcrsize\space 2 mul add moveto \pindcrsize\space -1 mul \pindcrsize\space -2 mul rlineto \pindcrsize\space 2 mul 0 rlineto closepath stroke}
+					\else
+						\psc@add\psc@pinnamey{0.375}\psc@pnamey
+					\fi
+					\psc@add\psc@pinnumx{0.25}\psc@pnumx
+					\psc@add\psc@pinnamex{0}\psc@pnamex
+					\putstr(#1,#2)[lt](\psc@pnumx,\psc@pnumy){\psc@pinnumsize #4}
+					\putstr(#1,#2)[b](\psc@pnamex,\psc@pnamey){\psc@pinnamesize #5}
+				\fi
+			\fi
+		\fi
+	\fi%
+}
+%
+% Put strings.
+% Arguments: (#1,#2) coordinates(x,y), [#3]: direction(rltbc), (#4,#5): fine adjustment vector, #6: string.
+%
+\def\putstr{%
+\let\psc@reservedstr=\empty
+\putstr@%
+}
+\def\putstr@f#1{%
+\def\psc@reservedstr{#1}
+\putstr@%
+}
+\def\putstr@(#1,#2){%
+\def\psc@reservedx{#1}
+\def\psc@reservedy{#2}
+\futurelet\@ch\@putstr%
+}
+%\putstr(,)
+\def\@putstr{%
+\ifx\@ch[
+\let\@next\@@putstr
+\else
+\ifx\@ch(
+\def\@next{\psc@@putstr(\psc@reservedx,\psc@reservedy)[c]}
+\else
+\def\@next{\psc@@putstr(\psc@reservedx,\psc@reservedy)[c](0,0)}
+\fi
+\fi
+\@next%
+}
+%\putstr(,)[]
+\def\@@putstr[#1]{%
+\def\psc@reserveddir{#1}
+\futurelet\@@ch\@@@putstr%
+}
+\def\@@@putstr{%
+\ifx\@@ch(
+\def\@@next{\psc@@putstr(\psc@reservedx,\psc@reservedy)[\psc@reserveddir]}
+\else
+\def\@@next{\psc@@putstr(\psc@reservedx,\psc@reservedy)[\psc@reserveddir](0,0)}
+\fi
+\@@next%
+}
+\def\psc@@putstr(#1,#2)[#3](#4,#5){%
+\ifx\psc@reservedstr\empty
+\def\@@@next{\psc@putstr(#1,#2)[#3](#4,#5)}%
+\else
+\def\@@@next{\psc@putstr(#1,#2)[#3](#4,#5){\psc@reservedstr}}%
+\fi
+\@@@next%
+}
+\def\psc@putstr(#1,#2)[#3](#4,#5)#6{%
+\psc@add{#1}{#4}\@x
+\psc@add\@x\psc@xoffset\@x
+\psc@add{#2}{#5}\@y
+\psc@add\@y\psc@yoffset\@y
+\put(\@x,\@y){\expandafter\makebox\expandafter(\expandafter0\expandafter,\expandafter0\expandafter)\expandafter[#3]{\psc@strsize #6}}%
+}
+%
+% 回路図のoffset調整.
+%
+\def\offset{%
+\@ifstar{\@reloffset}{\@absoffset}%
+}
+\def\@absoffset(#1,#2){%
+\psc@tempadd=#1\p@%
+\edef\psc@tempx{\rmpt\psc@tempadd}%
+\psc@tempadd=#2\p@%
+\edef\psc@tempy{\rmpt\psc@tempadd}%
+\immediate\write\psc@epsfile{\psc@xoffset\space -1 mul \psc@yoffset\space -1 mul translate}%
+\xdef\psc@xoffset{\psc@tempx}%
+\xdef\psc@yoffset{\psc@tempy}%
+\immediate\write\psc@epsfile{\psc@tempx\space \psc@tempy\space translate}%
+}
+\def\@reloffset(#1,#2){%
+\psc@tempadd=#1\p@%
+\edef\psc@tempx{\rmpt\psc@tempadd}%
+\psc@tempadd=#2\p@%
+\edef\psc@tempy{\rmpt\psc@tempadd}%
+\psc@add{\psc@xoffset}{\psc@tempx}{\psc@xoffset}%
+\psc@add{\psc@yoffset}{\psc@tempy}{\psc@yoffset}%
+\immediate\write\psc@epsfile{\psc@tempx\space \psc@tempy\space translate}%
+}
+\def\resetoffset(#1,#2){%
+\edef\psc@tempx{#1}
+\edef\psc@tempy{#2}
+\psc@sub{\psc@xoffset}{\psc@tempx}{\psc@xoffset}%
+\psc@sub{\psc@yoffset}{\psc@tempy}{\psc@yoffset}%
+\immediate\write\psc@epsfile{\psc@tempx\space -1 mul \psc@tempy\space -1 mul translate}%
+}
+%
+% gridの色
+%
+\definecolor{lightgray}{gray}{0.8}
+\definecolor{gray}{gray}{0.5}
+%
+%
+% grid+座標表示.
+%
+\newif\ifpsc@gridmeasure
+\def\grid{%
+	\@ifstar{\psc@gridmeasurefalse\psc@grid}{\psc@gridmeasuretrue\psc@grid}}
+\def\psc@grid{%
+	\linethickness{0.1pt}
+	\psc@ceiling{\pic@xmin}{\int@xmin}
+	\psc@ceiling{\pic@ymin}{\int@ymin}
+	\psc@floor{\pic@xmax}{\int@xmax}
+	\psc@floor{\pic@ymax}{\int@ymax}
+	\psc@sub{\int@xmax}{\int@xmin}{\int@width}
+	\psc@sub{\int@ymax}{\int@ymin}{\int@height}
+% Y coordinate.
+	\@tempcnta=\int@height
+	\advance \@tempcnta 1
+	\multiput(\int@xmin,\int@ymin)(0,1){\@tempcnta}{\color{lightgray}\line(1,0){\int@width}}% holizontal line
+% thick lines every 5[ul].
+	\ifpsc@gridmeasure
+		\@tempcnta=\int@ymax
+		\advance \@tempcnta 1
+		\@tempcntb=\int@ymin
+		\ifnum\@tempcntb>0
+			\advance \@tempcntb 4
+			\divide \@tempcntb 5
+			\multiply \@tempcntb 5
+		\else
+			\@tempcntb=5
+		\fi
+		\@whilenum \@tempcntb<\@tempcnta \do{%
+			\put(\int@xmin,\the\@tempcntb){\makebox(0,0)[rb]{\rule[1pt]{0pt}{5pt}\fontsize{\@viipt}{0}\selectfont\the\@tempcntb\,}}
+			\put(\int@xmin,\the\@tempcntb){\color{gray}\line(1,0){\int@width}}%
+			\advance \@tempcntb 5%
+		}
+		\@tempcnta=\int@ymin
+		\advance \@tempcnta -1
+		\@tempcntb=\int@ymax
+		\ifnum\@tempcntb<0
+			\divide \@tempcntb 5
+			\multiply \@tempcntb 5
+		\else
+			\@tempcntb=-5
+		\fi
+		\@whilenum \@tempcntb>\@tempcnta \do{%
+			\put(\int@xmin,\the\@tempcntb){\makebox(0,0)[rb]{\rule[1pt]{0pt}{5pt}\fontsize{\@viipt}{0}\selectfont\the\@tempcntb\,}}
+			\put(\int@xmin,\the\@tempcntb){\color{gray}\line(1,0){\int@width}}%
+			\advance \@tempcntb -5%
+		}
+	\fi
+% X coordinate.
+	\@tempcnta=\int@width
+	\advance \@tempcnta 1
+	\multiput(\int@xmin,\int@ymin)(1,0){\@tempcnta}{\color{lightgray}\line(0,1){\int@height}}% vertical line
+% thick lines every 5[ul].
+	\ifpsc@gridmeasure
+		\@tempcnta=\int@xmax
+		\advance \@tempcnta 1
+		\@tempcntb=\int@xmin
+		\advance \@tempcntb 0
+		\ifnum\@tempcntb>0
+			\advance \@tempcntb 4
+			\divide \@tempcntb 5
+			\multiply \@tempcntb 5
+		\else
+			\@tempcntb=5
+		\fi
+		\@whilenum \@tempcntb<\@tempcnta \do{%
+			\put(\the\@tempcntb,\int@ymin){\makebox(0,0)[lt]{\rule[1pt]{0pt}{5pt}\fontsize{\@viipt}{0}\selectfont\strut\the\@tempcntb}}
+			\put(\the\@tempcntb,\int@ymin){\color{gray}\line(0,1){\int@height}}% vertical line
+			\advance \@tempcntb 5%
+		}
+		\@tempcnta=\int@xmin
+		\advance \@tempcnta -1
+		\@tempcntb=\int@xmax
+		\ifnum\@tempcntb<0
+			\divide \@tempcntb 5
+			\multiply \@tempcntb 5
+		\else
+			\@tempcntb=-5
+		\fi
+		\@whilenum \@tempcntb>\@tempcnta \do{%
+			\put(\the\@tempcntb,\int@ymin){\makebox(0,0)[lt]{\rule[1pt]{0pt}{5pt}\fontsize{\@viipt}{0}\selectfont\strut\the\@tempcntb}}
+			\put(\the\@tempcntb,\int@ymin){\color{gray}\line(0,1){\int@height}}% vertical line
+			\advance \@tempcntb -5%
+		}
+		% X axis.
+		\ifnum\int@xmin>0 \else \ifnum\int@xmax<0 \else
+			\put(0,\int@ymin){\makebox(0,0)[lt]{\rule[1pt]{0pt}{5pt}\fontsize{\@viipt}{0}\selectfont\strut0}}
+			\put(0,\int@ymin){\color{red}\line(0,1){\int@height}}% vertical line
+\fi\fi
+	% Y axis.
+		\ifnum\int@ymin>0 \else \ifnum\int@ymax<0 \else
+			\put(\int@xmin,0){\color{red}\line(1,0){\int@width}}%
+			\put(\int@xmin,0){\makebox(0,0)[rb]{\rule[1pt]{0pt}{5pt}\fontsize{\@viipt}{0}\selectfont0\,}}
+		\fi\fi%
+	\fi%
+}
+%
+% 部品番号
+%
+\def\newpartnumber#1#2{%
+	\expandafter\newcount\csname partnum#1 \endcsname
+	\csname partnum#1 \endcsname =#2%
+}
+\def\partnum{%
+\@ifstar{\psc@partnum}{\psc@partnuma}%
+}
+% 表示. #1: 部品名, #2: 部品番号以外のコメント(ICのパッケージ区分, 素子値など. 省略可).
+\def\psc@partnuma#1{%
+\expandafter\advance\csname partnum#1 \endcsname 1
+\psc@partnum{#1}%
+}
+\def\psc@partnum#1#2{%
+\ifx#2(
+\def\@next{\putstr@f{#1\expandafter\the\csname partnum#1 \endcsname}(}
+\else
+\def\@next{\putstr@f{#1\expandafter\the\csname partnum#1 \endcsname\ #2}}
+\fi
+\@next%
+}
+\def\setpartnumber#1#2{%
+\csname partnum#1 \endcsname =#2%
+}

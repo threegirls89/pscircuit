@@ -1,0 +1,95 @@
+\def\@pscepspreamble{%
+\immediate\write\psc@epsfile{/wire \@charlb }%
+\immediate\write\psc@epsfile{4 dict begin}%
+\immediate\write\psc@epsfile{/y2 exch def}%
+\immediate\write\psc@epsfile{/x2 exch def}%
+\immediate\write\psc@epsfile{/y1 exch def}%
+\immediate\write\psc@epsfile{/x1 exch def}%
+\immediate\write\psc@epsfile{newpath}%
+\immediate\write\psc@epsfile{x1 y1 moveto}%
+\immediate\write\psc@epsfile{x2 y2 lineto}%
+\immediate\write\psc@epsfile{1 setlinecap}%
+\immediate\write\psc@epsfile{stroke}%
+\immediate\write\psc@epsfile{0 setlinecap}%
+\immediate\write\psc@epsfile{end}%
+\immediate\write\psc@epsfile{\@charrb  def}%
+\immediate\write\psc@epsfile{/arrowhead \@charlb }%
+\immediate\write\psc@epsfile{12 dict begin}%
+\immediate\write\psc@epsfile{/l exch def}%
+\immediate\write\psc@epsfile{/theta exch def}%
+\immediate\write\psc@epsfile{/dy exch def}%
+\immediate\write\psc@epsfile{/dx exch def}%
+\immediate\write\psc@epsfile{/y exch def}%
+\immediate\write\psc@epsfile{/x exch def}%
+\immediate\write\psc@epsfile{/dl dx dx mul dy dy mul add sqrt def}%
+\immediate\write\psc@epsfile{/phi 180 theta sub def}%
+\immediate\write\psc@epsfile{/x1 dx phi cos mul dy phi sin mul sub l mul dl div x add def}%
+\immediate\write\psc@epsfile{/y1 dx phi sin mul dy phi cos mul add l mul dl div y add def}%
+\immediate\write\psc@epsfile{/phi 180 theta add def}%
+\immediate\write\psc@epsfile{/x2 dx phi cos mul dy phi sin mul sub l mul dl div x add def}%
+\immediate\write\psc@epsfile{/y2 dx phi sin mul dy phi cos mul add l mul dl div y add def}%
+\immediate\write\psc@epsfile{newpath}%
+\immediate\write\psc@epsfile{x1 y1 moveto}%
+\immediate\write\psc@epsfile{x y lineto}%
+\immediate\write\psc@epsfile{x2 y2 lineto}%
+\immediate\write\psc@epsfile{closepath}%
+\immediate\write\psc@epsfile{fill}%
+\immediate\write\psc@epsfile{end}%
+\immediate\write\psc@epsfile{\@charrb  def}%
+\immediate\write\psc@epsfile{/arrow \@charlb }%
+\immediate\write\psc@epsfile{9 dict begin}%
+\immediate\write\psc@epsfile{/type exch def}%
+\immediate\write\psc@epsfile{/l exch def}%
+\immediate\write\psc@epsfile{/theta exch def}%
+\immediate\write\psc@epsfile{/y2 exch def}%
+\immediate\write\psc@epsfile{/x2 exch def}%
+\immediate\write\psc@epsfile{/y1 exch def}%
+\immediate\write\psc@epsfile{/x1 exch def}%
+\immediate\write\psc@epsfile{/norm x2 x1 sub x2 x1 sub mul y2 y1 sub y2 y1 sub mul add sqrt def}%
+\immediate\write\psc@epsfile{/h l theta cos div def}%
+\immediate\write\psc@epsfile{/x01 x1 def}%
+\immediate\write\psc@epsfile{/x02 x2 def}%
+\immediate\write\psc@epsfile{/y01 y1 def}%
+\immediate\write\psc@epsfile{/y02 y2 def}%
+\immediate\write\psc@epsfile{type 2 mod 1 eq \@charlb }%
+\immediate\write\psc@epsfile{x2 y2 x2 x1 sub y2 y1 sub theta h arrowhead}%
+\immediate\write\psc@epsfile{/x02 x2 x2 x1 sub norm div l mul sub def}%
+\immediate\write\psc@epsfile{/y02 y2 y2 y1 sub norm div l mul sub def}%
+\immediate\write\psc@epsfile{\@charrb  if}%
+\immediate\write\psc@epsfile{type 2 idiv 1 eq \@charlb }%
+\immediate\write\psc@epsfile{x1 y1 x1 x2 sub y1 y2 sub theta h arrowhead}%
+\immediate\write\psc@epsfile{/x01 x1 x1 x2 sub norm div l mul sub def}%
+\immediate\write\psc@epsfile{/y01 y1 y1 y2 sub norm div l mul sub def}%
+\immediate\write\psc@epsfile{\@charrb  if}%
+\immediate\write\psc@epsfile{newpath}%
+\immediate\write\psc@epsfile{x01 y01 moveto}%
+\immediate\write\psc@epsfile{x02 y02 lineto}%
+\immediate\write\psc@epsfile{stroke}%
+\immediate\write\psc@epsfile{end}%
+\immediate\write\psc@epsfile{\@charrb  def}%
+\immediate\write\psc@epsfile{/rectangle \@charlb }%
+\immediate\write\psc@epsfile{5 dict begin}%
+\immediate\write\psc@epsfile{/h exch def}%
+\immediate\write\psc@epsfile{/w exch def}%
+\immediate\write\psc@epsfile{/y exch def}%
+\immediate\write\psc@epsfile{/x exch def}%
+\immediate\write\psc@epsfile{/ch exch def}%
+\immediate\write\psc@epsfile{ch (c) eq \@charlb }%
+\immediate\write\psc@epsfile{/x x w 0.5 mul sub def}%
+\immediate\write\psc@epsfile{/y y h 0.5 mul sub def}%
+\immediate\write\psc@epsfile{\@charrb \@charlb }%
+\immediate\write\psc@epsfile{ch (p) eq \@charlb }%
+\immediate\write\psc@epsfile{/w w x sub def}%
+\immediate\write\psc@epsfile{/h h y sub def}%
+\immediate\write\psc@epsfile{\@charrb  if}%
+\immediate\write\psc@epsfile{\@charrb  ifelse}%
+\immediate\write\psc@epsfile{newpath}%
+\immediate\write\psc@epsfile{x y moveto}%
+\immediate\write\psc@epsfile{w 0 rlineto}%
+\immediate\write\psc@epsfile{0 h rlineto}%
+\immediate\write\psc@epsfile{w -1 mul 0 rlineto}%
+\immediate\write\psc@epsfile{closepath}%
+\immediate\write\psc@epsfile{stroke}%
+\immediate\write\psc@epsfile{end}%
+\immediate\write\psc@epsfile{\@charrb  def}%
+}

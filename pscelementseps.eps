@@ -1,0 +1,1914 @@
+%!PS-Adobe-3.0 EPSF-3.0
+%%BoundingBox: 0 0 128 128
+
+% All PostScript Commands to draw circuit elements in pscelemnts.sty
+% and new Postscript command testing environment
+
+0.05 setlinewidth
+
+% begininput
+
+% x y theta startfigで座標変換(原点を(x,y)に平行移動, theta[^\circ]の回転)
+/startfig {3 1 roll exch exch translate rotate} def
+
+/arrowhead {
+	12 dict begin
+	/l exch def
+	/theta exch def
+	/dy exch def
+	/dx exch def
+	/y exch def
+	/x exch def
+	/dl dx dx mul dy dy mul add sqrt def
+	/phi 180 theta sub def
+	/x1 dx phi cos mul dy phi sin mul sub l mul dl div x add def
+	/y1 dx phi sin mul dy phi cos mul add l mul dl div y add def
+	/phi 180 theta add def
+	/x2 dx phi cos mul dy phi sin mul sub l mul dl div x add def
+	/y2 dx phi sin mul dy phi cos mul add l mul dl div y add def
+	newpath
+	x1 y1 moveto
+	x y lineto
+	x2 y2 lineto
+	closepath
+	fill
+	end
+} def
+
+/arrow {
+	9 dict begin
+	/type exch def
+	/l exch def
+	/theta exch def
+	/y2 exch def
+	/x2 exch def
+	/y1 exch def
+	/x1 exch def
+	/norm x2 x1 sub x2 x1 sub mul y2 y1 sub y2 y1 sub mul add sqrt def
+	/h l theta cos div def
+	/x01 x1 def
+	/x02 x2 def
+	/y01 y1 def
+	/y02 y2 def
+	type 2 mod 1 eq {
+		x2 y2 x2 x1 sub y2 y1 sub theta h arrowhead
+		/x02 x2 x2 x1 sub norm div l mul sub def
+		/y02 y2 y2 y1 sub norm div l mul sub def
+	} if
+	type 2 idiv 1 eq {
+		x1 y1 x1 x2 sub y1 y2 sub theta h arrowhead
+		/x01 x1 x1 x2 sub norm div l mul sub def
+		/y01 y1 y1 y2 sub norm div l mul sub def
+	} if
+	newpath
+	x01 y01 moveto
+	x02 y02 lineto
+	stroke
+	end
+} def
+
+% 以上回路素子以外の基本コマンド
+% 以下回路素子
+
+% 抵抗, 可変抵抗 引数x y theta
+/R {
+	gsave
+	startfig
+	newpath
+	0 0 moveto
+	0.8 0 rlineto
+	2.4 1 R_ker
+	0.8 0 rlineto
+	stroke
+	grestore
+} def
+
+% 2端子VR 引数x y theta trim
+/VR_2{
+	gsave
+	2 dict begin
+	/trim exch def
+	/theta exch def
+	theta startfig
+	0 0 0 R
+	gsave
+	2 0 translate
+	theta -1 mul rotate
+	trim 1 eq {
+		newpath
+		-1.25 -1.25 moveto
+		1.25 1.25 lineto
+		stroke
+		newpath
+		1.25 1.25 moveto
+		-0.25 0.25 rmoveto
+		0.5 -0.5 rlineto
+		stroke
+	} {
+		-1.25 -1.25 1.25 1.25 15 0.8 1 arrow
+	} ifelse
+	grestore
+	end
+	grestore
+} def
+
+% 3端子VR 引数x y theta trim(トリマ抵抗)
+/VR_3{
+	gsave
+	1 dict begin
+	/trim exch def
+	startfig
+	newpath
+	2 -2 moveto
+	0 1 rlineto
+	90 rotate
+	2.4 1 R_ker
+	-90 rotate
+	0 0.6 rlineto
+	stroke
+	trim 1 eq {
+		newpath
+		0 0 moveto
+		1.5 0 lineto
+		0 -0.5 rlineto
+		0 1 rlineto
+		stroke
+	}{
+		0 0 1.5 0 15 1 1 arrow
+	} ifelse
+	end
+	grestore
+} def
+
+% Rのzigzag部山3つ谷3つ w h R_kerとする w: 幅 h: 高さ
+/R_ker {
+	4 dict begin
+	/h exch def
+	/w exch def
+	/dy h 2 div def
+	/dx w 12 div def
+	1 1 12 {
+		4 mod 1 le {
+			dx dy rlineto
+		}{
+			dx dy -1 mul rlineto
+		} ifelse
+	} for
+	end
+} def
+
+% 四角抵抗 引数x y theta
+/Z {
+	gsave
+	startfig
+	newpath
+	0 0 moveto
+	0.8 0 rlineto
+	2.4 0 rmoveto
+	0.8 0 rlineto
+	stroke
+	newpath
+	0.8 -0.5 moveto
+	0 1 rlineto
+	2.4 0 rlineto
+	0 -1 rlineto
+	closepath
+	stroke
+	grestore
+} def
+
+% コンデンサ 引数x y theta
+/C {
+	gsave
+	startfig
+	newpath
+	0 0 moveto
+	1.5 0 rlineto
+	1 0 rmoveto
+	1.5 0 rlineto
+	stroke
+	newpath
+	1.5 1 moveto
+	0.25 0 rlineto
+	0 -2 rlineto
+	-0.25 0 rlineto
+	closepath
+	fill
+	newpath
+	2.5 1 moveto
+	-0.25 0 rlineto
+	0 -2 rlineto
+	0.25 0 rlineto
+	closepath
+	fill
+	grestore
+} def
+
+% 2端子VC 引数x y theta trim
+/VC{
+	gsave
+	2 dict begin
+	/trim exch def
+	/theta exch def
+	theta startfig
+	0 0 0 C
+	gsave
+	2 0 translate
+	theta -1 mul rotate
+	trim 1 eq {
+		newpath
+		-1.25 -1.25 moveto
+		1.25 1.25 lineto
+		stroke
+		newpath
+		1.25 1.25 moveto
+		-0.25 0.25 rmoveto
+		0.5 -0.5 rlineto
+		stroke
+	} {
+		-1.25 -1.25 1.25 1.25 15 0.8 1 arrow
+	} ifelse
+	grestore
+	end
+	grestore
+} def
+
+% ケミコン用の+記号
+/plus{
+	3 dict begin
+	/w exch def
+	/y exch def
+	/x exch def
+	newpath
+	x w 2 div sub y moveto
+	w 0 rlineto
+	x y w 2 div sub moveto
+	0 w rlineto
+	stroke
+	end
+} def
+
+% ケミコン
+/CC {
+	gsave
+	2 dict begin
+	/pos exch def
+	startfig
+	0 0 0 C
+	newpath
+	-1 1 1 {
+	0.75 mul
+	/i exch def
+	1.7 i 0.125 add moveto
+	0.6 -0.25 rlineto
+	} for
+	stroke
+	pos 1 eq {
+		0.75 1.25 0.75 plus
+	} if
+	pos 2 eq {
+		0.75 -1.25 0.75 plus
+	} if
+	pos 3 eq {
+		3.25 -1.25 0.75 plus
+	} if
+	pos 4 eq {
+		3.25 1.25 0.75 plus
+	} if
+	end
+	grestore
+} def
+
+% コイルの螺旋 l: 長さ r: 半径: phi: 螺旋1つの中心角 n:巻数 arycore: 鉄心線の位置(複数本可)
+/L_ker{
+	8 dict begin
+	/arycore exch def
+	/n exch def
+	/phi exch def
+	/r exch def
+	/l exch def
+	/rem l r phi cos n 2 mul mul 2 add mul sub 2 div def
+	newpath
+	0 0 moveto
+	rem 0 rlineto
+	r rem add 0 r 180 phi -1 mul arcn
+	1 1 n 1 sub {
+	/i exch def
+	rem 2 phi cos mul i mul 1 add r mul add 0 r phi 180 add phi -1 mul arcn
+	} for
+	rem r phi cos n 2 mul mul 1 add mul add 0 r 180 phi add 0 arcn
+	l 0 lineto
+	stroke
+	arycore {
+		/y exch def
+		newpath rem y moveto l rem 2 mul sub 0 rlineto stroke
+	} forall
+	end
+} def
+
+% コイル簡易指定 引数x y theta core(鉄心のつき方)
+/L{
+	gsave
+	2 dict begin
+	/core exch def
+	startfig
+	/arycore [ core 1 ge {0.84 core 2 eq {1.16} if } if ] def
+	4 0.56 50 3 arycore L_ker
+	end
+	grestore
+} def
+
+% コイル完全版 引数x y theta n core n:巻数 core: 鉄心のつき方
+/L_univ{
+	gsave
+	4 dict begin
+	/phi 48 def
+	/core exch def
+	/n exch def
+	startfig
+	/arycore [ core 1 ge {1.25 core 2 eq {1.75} if } if ] def
+	n 3 add 0.5 phi cos div phi n arycore L_ker
+	end
+	grestore
+} def
+
+% コイルのタップ
+/tap{
+	2 dict begin
+	/phi 48 def
+	/n exch def
+	newpath n 1 add phi sin phi cos div -0.5 mul 0.2 0 360 arc fill
+	newpath n 1 add phi sin phi cos div -0.5 mul moveto n 1 add -1 lineto stroke
+	end
+} def
+
+% 電池1個
+/BATT {
+	gsave
+	startfig
+	newpath
+	0 0 moveto
+	1.5 0 rlineto
+	0 -1.5 rmoveto
+	0 3 rlineto
+	1 -1.5 rmoveto
+	1.5 0 rlineto
+	stroke
+	newpath
+	2 -0.5 moveto
+	0 1 rlineto
+	0.5 0 rlineto
+	0 -1 rlineto
+	-0.5 0 rlineto
+	fill
+	grestore
+} def
+
+/BATT_ker {
+	1 dict begin
+	/x exch def
+	newpath
+	x -1.5 moveto
+	0 3 rlineto
+	stroke
+	newpath
+	x 0.5 add -0.5 moveto
+	0 1 rlineto
+	0.5 0 rlineto
+	0 -1 rlineto
+	-0.5 0 rlineto
+	fill
+	end
+} def
+
+% 電池n個
+/BATT_univ {
+	gsave
+	1 dict begin
+	/n exch def
+	startfig
+	n 2 mod 1 eq {
+		newpath
+		0 0 moveto
+		1 0 rlineto
+		0.5 1.5 n mul add 0 moveto
+		1 0 rlineto
+		stroke
+		1 1 n {
+			1.5 mul 0.5 sub BATT_ker
+		} for
+	}{
+		newpath
+		0 0 moveto
+		0.75 0 rlineto
+		0.25 1.5 n mul add 0 moveto
+		0.75 0 rlineto
+		stroke
+		1 1 n {
+			1.5 mul 0.75 sub BATT_ker
+		} for
+	} ifelse
+	newpath
+	end
+	grestore
+} def
+
+% 信号グラウンド 引数: x y GND1
+/GND1 {
+	gsave
+	translate
+	newpath
+	0 0 moveto
+	0 -1 rlineto
+	-0.625 0 rlineto
+	0.625 -1 rlineto
+	0.625 1 rlineto
+	-0.625 0 rlineto
+	stroke
+	grestore
+} def
+
+% 筐体グラウンド
+/GND2 {
+	gsave
+	translate
+	newpath
+	0 0 moveto
+	0 -1 rlineto
+	-1 0 rmoveto
+	2 0 rlineto
+	-0.5 -1 rlineto
+	-0.25 1 rmoveto
+	-0.5 -1 rlineto
+	-0.25 1 rmoveto
+	-0.5 -1 rlineto
+	stroke
+	grestore
+} def
+
+% アース
+/GND3 {
+	gsave
+	translate
+	newpath
+	0 0 moveto
+	0 -1 rlineto
+	-1 -1 moveto
+	2 0 rlineto
+	-0.625 -1.5 moveto
+	1.25 0 rlineto
+	-0.25 -2 moveto
+	0.5 0 rlineto
+	stroke
+	grestore
+} def
+
+% 交流電圧源の中心部 引数x y theta
+/AC_ker {
+	gsave
+	1 dict begin
+	/theta exch def
+	translate
+	theta -1 mul rotate
+	newpath
+	0 0 1.25 0 360 arc stroke
+	newpath
+	-0.875 0 moveto
+	-0.5 0.875 -0.375 0.875 0 0 curveto
+  0.375 -0.875 0.5 -0.875 0.875 0 curveto
+	1 setlinecap
+	stroke
+	end
+	grestore
+} def
+
+% 交流電圧源
+/AC {
+	gsave
+	1 dict begin
+	/theta exch def
+	theta startfig
+	newpath
+	0 0 moveto
+	0.75 0 lineto
+	3.25 0 moveto
+	4 0 lineto
+	stroke
+	2 0 theta AC_ker
+	end
+	grestore
+} def
+
+% 三相交流Y結線
+/AC_3Y {
+	gsave
+	0 startfig
+	0 2 0 AC_ker
+	2 -1 0 AC_ker
+	-2 -1 0 AC_ker
+	newpath
+	0 0 moveto
+	0 0.75 lineto
+	0 3.25 moveto
+	0 4 lineto
+	stroke
+	newpath
+	0 0 moveto
+	0.8820 -0.4410 rlineto
+	4 -2 moveto
+	-0.8820 0.4410 rlineto
+	stroke
+	newpath
+	0 0 moveto
+	-0.8820 -0.4410 rlineto
+	-4 -2 moveto
+	0.8820 0.4410 rlineto
+	stroke
+	newpath 0 0 0.2 0 360 arc fill
+	grestore
+}def
+
+% メータ(丸の中にtexで文字を当てる)
+/meter {
+	gsave
+	startfig
+	newpath
+	0 0 moveto
+	0.75 0 rlineto
+	4 0 moveto
+	-0.75 0 rlineto
+	stroke
+	newpath
+	2 0 1.25 0 360 arc
+	stroke
+	grestore
+} def
+
+% 電流源
+/current {
+	gsave
+	startfig
+	0 0 0 meter
+	1 0 3 0 15 0.75 1 arrow
+	grestore
+} def
+
+% スイッチ
+/sw {
+	gsave
+	startfig
+	newpath
+	0 0 moveto
+	0.45 0 rlineto
+	4 0 moveto
+	-0.45 0 rlineto
+	stroke
+	newpath
+	0.75 0 0.3 0 360 arc stroke
+	newpath
+	3.25 0 0.3 0 360 arc stroke
+	newpath
+	1.05 0 moveto
+	3 1.5 lineto
+	stroke
+	grestore
+} def
+
+% 押釦スイッチNormally Open
+/pushsw {
+	gsave
+	startfig
+	newpath
+	0 0 moveto
+	0.45 0 rlineto
+	4 0 moveto
+	-0.45 0 rlineto
+	stroke
+	newpath
+	0.75 0 0.3 0 360 arc stroke
+	newpath
+	3.25 0 0.3 0 360 arc stroke
+	newpath
+	0.45 1 moveto
+	3.1 0 rlineto
+	2 1 moveto
+	0 0.5 rlineto
+	stroke
+	grestore
+} def
+
+% /dir: Side of NC terminal seen from common terminal. 1 -> left, -1 -> right.
+/togglesw {
+	gsave
+	1 dict begin
+	/dir exch def
+	startfig
+	newpath
+	0 0 moveto
+	0.45 0 rlineto
+	4 -1 moveto
+	-0.45 0 rlineto
+	4 1 moveto
+	-0.45 0 rlineto
+	stroke
+	newpath 0.75 0 0.3 0 360 arc stroke
+	newpath 3.25 -1 0.3 0 360 arc stroke
+	newpath 3.25 1 0.3 0 360 arc stroke
+	newpath
+	1.05 0 moveto
+	3 dir lineto
+	stroke
+	end
+	grestore
+} def
+
+/pushtogglesw {
+	gsave
+	2 dict begin
+	/dir exch def
+	/theta exch def
+	theta startfig
+	newpath
+	0 0 moveto
+	0.725 0 lineto
+	0.725 1 lineto
+	1.45 1 lineto
+	0.725 0 moveto
+	0.725 -1 lineto
+	1.45 -1 lineto
+	5 -1 moveto
+	-0.45 0 rlineto
+	5 1 moveto
+	-0.45 0 rlineto
+	stroke
+	newpath
+	0.725 0 0.2 0 360 arc
+	fill
+	newpath 1.75 -1 0.3 0 360 arc stroke
+	newpath 4.25 -1 0.3 0 360 arc stroke
+	newpath 1.75 1 0.3 0 360 arc stroke
+	newpath 4.25 1 0.3 0 360 arc stroke
+	dir 1 eq {0 0.7} {0 -0.7} ifelse translate
+	newpath
+	1.45 0 moveto
+	3.1 0 rlineto
+	3 0 moveto
+	/theta theta theta 360 div floor 360 mul sub def
+	0 0.5 theta 90 gt theta 270 lt and {-1 mul} if rlineto
+	stroke
+	end
+	grestore
+} def
+
+% diode
+/D {
+	gsave
+	startfig
+	newpath
+	0 0 moveto
+	4 0 lineto
+	stroke
+	2 0 translate
+	D_ker
+	grestore
+} def
+
+% zener diode
+/ZD {
+	gsave
+	startfig
+	newpath
+	0 0 moveto
+	4 0 lineto
+	stroke
+	2 0 translate
+	0 setlinewidth
+	0.0357143 0.0357143 scale % 1/28
+	newpath
+	-36 28 moveto
+	-36 -28 lineto
+	12 0 lineto
+	closepath
+	fill
+	newpath
+	20 28 moveto
+	20 -26 lineto
+	36 -26 lineto
+	36 -28 lineto
+	12 -28 lineto
+	12 26 lineto
+	-4 26 lineto
+	-4 28 lineto
+	closepath
+	fill
+	grestore
+} def
+
+% schottky diode
+/SBD {
+	gsave
+	startfig
+	newpath
+	0 0 moveto
+	4 0 lineto
+	stroke
+	2 0 translate
+	0 setlinewidth
+	0.0357143 0.0357143 scale % 1/28
+	newpath
+	-32 28 moveto
+	-32 -28 lineto
+	16 0 lineto
+	closepath
+	fill
+	newpath
+	24 28 8 0 180 arc
+	16 -28 lineto
+	12 -28 4 0 180 arcn
+	16 -28 8 180 360 arc
+	24 28 lineto
+	28 28 4 180 360 arcn
+	closepath
+	fill
+	grestore
+} def
+
+% varicap diode
+/VCD {
+	gsave
+	startfig
+	newpath
+	0 0 moveto
+	2.571429 0 lineto
+	3.142857 0 moveto
+	4 0 lineto
+	stroke
+	2 0 translate
+	0 setlinewidth
+	0.0357143 0.0357143 scale % 1/28
+	newpath
+	-36 28 moveto
+	-36 -28 lineto
+	12 0 lineto
+	closepath
+	fill
+	newpath
+	12 28 moveto
+	20 28 lineto
+	20 -28 lineto
+	12 -28 lineto
+	closepath
+	fill
+	newpath
+	28 28 moveto
+	36 28 lineto
+	36 -28 lineto
+	28 -28 lineto
+	closepath
+	fill
+	grestore
+} def
+
+/LED {
+	gsave
+	startfig
+	0 0 0 D
+	2.25 1.75 3.5 3 18 0.8 1 arrow
+	2.75 1.25 4 2.5 18 0.8 1 arrow
+	grestore
+} def
+
+% photo diode
+/PD {
+	gsave
+	startfig
+	0 0 0 D
+	0.5 -3 1.75 -1.75 18 0.8 1 arrow
+	0 -2.5 1.25 -1.25 18 0.8 1 arrow
+	grestore
+} def
+
+/D_ker {
+	gsave
+	0.0357143 0.0357143 scale % 1/28
+	newpath
+	-28 28 moveto
+	-28 -28 lineto
+	20 0 lineto
+	closepath
+	fill
+	newpath
+	28 28 moveto
+	20 28 lineto
+	20 -28 lineto
+	28 -28 lineto
+	closepath
+	fill
+	grestore
+} def
+
+% diode bridge
+/DBridge {
+	gsave
+	startfig
+	newpath
+	1.171573 0 moveto
+	4 2.828427 lineto
+	6.828427 0 lineto
+	4 -2.828427 lineto
+	closepath
+	stroke
+	gsave
+	4 0 translate
+	0.8 0.8 scale
+	gsave
+	-1.767767 1.767767 45 startfig D_ker
+	grestore
+	gsave
+	1.767767 -1.767767 45 startfig D_ker
+	grestore
+	gsave
+	1.767767 1.767767 -45 startfig D_ker
+	grestore
+	gsave
+	-1.767767 -1.767767 -45 startfig D_ker
+	grestore
+	grestore
+	newpath 1.171573 0 0.2 0 360 arc fill
+	newpath 6.828427 0 0.2 0 360 arc fill
+	newpath 4 2.828427 0.2 0 360 arc fill
+	newpath 4 -2.828427 0.2 0 360 arc fill
+	newpath
+	0 0 moveto 1.171573 0 lineto
+	8 0 moveto 6.828427 0 lineto
+	4 4 moveto 4 2.828427 lineto
+	4 -4 moveto 4 -2.828427 lineto
+	stroke
+	grestore
+} def
+
+% SCR dir; r: Aから見て右にGを出す. l: 左 
+/SCR {
+	/dir exch def
+	gsave
+	startfig
+	newpath
+	0 0 moveto
+	4 0 lineto
+	stroke
+	gsave
+	2 0 0 startfig D_ker
+	grestore
+	newpath
+	3 0 moveto
+	4 dir (r) eq {-1} {1} ifelse lineto
+	stroke
+	grestore
+} def
+
+% 水晶
+/xtal {
+	gsave
+	startfig
+	newpath
+	0 0 moveto
+	1.25 0 rlineto
+	4 0 moveto
+	-1.25 0 rlineto
+	stroke
+	2 setlinecap
+	newpath
+	1.25 -1 moveto
+	0 2 rlineto
+	2.75 -1 moveto
+	0 2 rlineto
+	stroke
+	0 setlinecap
+	newpath
+	1.625 1 moveto
+	0 -2 rlineto
+	0.75 0 rlineto
+	0 2 rlineto
+	closepath
+	stroke
+	grestore
+} def
+
+% セラミック発音体
+/xtalsp {
+	gsave
+	startfig
+	0 0 0 xtal
+	newpath
+	1.25 1.5 moveto
+	0.5 2.75 lineto
+	3.5 2.75 lineto
+	2.75 1.5 lineto
+	closepath
+	stroke
+	grestore
+} def
+
+/ceralock {
+	gsave
+	startfig
+	newpath
+	0 0 moveto
+	1.25 0 rlineto
+	stroke
+	newpath
+	1.25 0.75 moveto
+	0 -1.5 rlineto
+	stroke
+	newpath
+	3 3  moveto
+	3 0.625 lineto
+	3 -0.625 moveto
+	3 -3 lineto
+	stroke
+	newpath
+	3 2 moveto
+	1.25 2 lineto
+	0 -1 rlineto
+	3 -2 moveto
+	1.25 -2 lineto
+	0 1 rlineto
+	stroke
+	newpath
+	2 setlinecap
+	2.25 0.625 moveto
+	1.5 0 rlineto
+	2.25 -0.625 moveto
+	1.5 0 rlineto
+	stroke
+	0 setlinecap
+	newpath
+	2.25 0.3125 moveto
+	1.5 0 rlineto
+	0 -0.625 rlineto
+	-1.5 0 rlineto
+	closepath
+	stroke
+	newpath
+	0.625 0.75 moveto
+	1.25 0 rlineto
+	0 -0.2 rlineto
+	-1.25 0 rlineto
+	closepath
+	fill
+	newpath
+	0.625 1 moveto
+	1.25 0 rlineto
+	0 0.2 rlineto
+	-1.25 0 rlineto
+	closepath
+	fill
+	newpath
+	0.625 -0.75 moveto
+	1.25 0 rlineto
+	0 0.2 rlineto
+	-1.25 0 rlineto
+	closepath
+	fill
+	newpath
+	0.625 -1 moveto
+	1.25 0 rlineto
+	0 -0.2 rlineto
+	-1.25 0 rlineto
+	closepath
+	fill
+	newpath
+	1.25 0 0.2 0 360 arc
+	fill
+	newpath
+	3 2 0.2 0 360 arc
+	fill
+	newpath
+	3 -2 0.2 0 360 arc
+	fill
+	newpath
+	0.3125 2.6875 moveto
+	0.3125 -2.6875 lineto
+	4 -2.6875 lineto
+	4 2.6875 lineto
+	closepath
+	stroke
+	grestore
+} def
+
+% ダイナミックスピーカ
+/dynamicsp {
+	gsave
+	startfig
+	gsave
+	0.5 0 translate
+	3 0.55 55 1 [] L_ker
+	grestore
+	newpath
+	0 0 moveto
+	0.5 0 rlineto
+	4 0 moveto
+	-0.5 0 rlineto
+	stroke
+	newpath
+	1.25 1.1 moveto
+	0.5 2.35 lineto
+	3.5 2.35 lineto
+	2.75 1.1 lineto
+	closepath
+	stroke
+	grestore
+} def
+
+/fuse {
+	gsave
+	startfig
+	newpath
+	0 0 moveto
+	0.5 0 rlineto
+	3 0 rmoveto
+	0.5 0 rlineto
+	stroke
+	newpath
+	0.75 0 moveto
+	1.125 0.75 1.625 0.75 2 0 curveto
+	2.375 -0.75 2.875 -0.75 3.25 0 curveto
+	stroke
+	1 setgray
+	newpath
+	0.75 0 0.3 0 360 arc fill
+	newpath
+	3.25 0 0.3 0 360 arc fill
+	0 setgray
+	newpath
+	0.75 0 0.3 0 360 arc stroke
+	newpath
+	3.25 0 0.3 0 360 arc stroke
+	grestore
+} def
+
+% トランジスタ
+/TR {
+	gsave
+	2 dict begin
+	/dir exch def
+	/pn exch def
+	startfig
+	dir (l) eq {
+		1 -1 scale
+	} if
+	newpath
+	3 0 2.25 0 360 arc
+	stroke
+	newpath
+	1.875 1.25 moveto
+	0 -2.5 rlineto
+	0.375 0 rlineto
+	0 2.5 rlineto
+	closepath
+	fill
+	newpath
+	0 0 moveto
+	1.875 0 lineto
+	stroke
+	newpath
+	4 3 moveto
+	4 2.015564437 lineto
+	stroke
+	newpath
+	4 -3 moveto
+	4 -2.015564437 lineto
+	stroke
+	newpath
+	4 2.015564437 moveto
+	2.2 0.52 lineto
+	stroke
+	pn (n) eq {
+		2.2 -0.52 4 -2.015564437 15 1 1 arrow
+	}{
+		4 -2.015564437 2.2 -0.52 15 1 1 arrow
+	} ifelse
+	grestore
+} def
+
+% JFET(ゲート端子が真ん中)
+/FET {
+	2 dict begin
+	/dir exch def
+	/pn exch def
+	dir (c) eq {
+		gsave
+		startfig
+		newpath
+		3 0 2.25 0 360 arc
+		stroke
+		newpath
+		1.875 1.25 moveto
+		0 -2.5 rlineto
+		0.375 0 rlineto
+		0 2.5 rlineto
+		closepath
+		fill
+		newpath
+		4 3 moveto
+		4 1 lineto
+		2 1 lineto
+		stroke
+		newpath
+		4 -3 moveto
+		4 -1 lineto
+		2 -1 lineto
+		stroke
+		pn (n) eq {
+			0 0 1.875 0 20 0.65 1 arrow
+		}{
+			pn (p) eq {
+				1.875 0 0.75 0 20 0.65 1 arrow
+				newpath
+				0 0 moveto
+				0.75 0 lineto
+				stroke
+			} if
+		} ifelse
+		grestore
+	}{
+		pn dir JFET
+	} ifelse
+	end
+} def
+
+% JFET(ゲート端子がソース側に寄る)
+/JFET{
+	gsave
+	3 dict begin
+	/dir exch def
+	/pn exch def
+	startfig
+	dir (r) eq {
+		/dy 1 def
+	}{
+		dir (l) eq {
+			/dy -1 def
+		} if
+	} ifelse
+	newpath
+	0 0 moveto
+	2 0 rlineto
+	stroke
+	gsave
+	0 dy translate
+	newpath
+	3 0 2.25 0 360 arc
+	stroke
+	newpath
+	2 1.25 moveto
+	0 -2.5 rlineto
+	0.375 0 rlineto
+	0 2.5 rlineto
+	closepath
+	fill
+	newpath
+	4 3 moveto
+	4 1 lineto
+	2 1 lineto
+	stroke
+	newpath
+	4 -3 moveto
+	4 -1 lineto
+	2 -1 lineto
+	stroke
+	grestore
+	pn (n) eq {
+		0 0 2 0 20 0.65 1 arrow
+	}{
+		pn (p) eq {
+			2 0 1 0 20 0.65 1 arrow
+			newpath
+			0 0 moveto
+			1 0 lineto
+			stroke
+		} if
+	} ifelse
+	grestore
+} def
+
+% MOSFET
+/MOSFET{
+	gsave
+	5 dict begin
+	/dir exch def
+	/pn exch def
+	/type exch def
+	startfig
+	dir (r) eq {
+		/dy 1 def
+	}{
+		dir (l) eq {
+			/dy -1 def
+		} if
+	} ifelse
+	newpath
+	0 0 moveto
+	2 0 rlineto
+	stroke
+	newpath
+	3 dy 2.25 0 360 arc
+	stroke
+	newpath
+	2 0 moveto
+	0 2 dy 0 gt {1} {-1} ifelse mul rlineto
+	-0.375 0 rlineto
+	0 -2 dy 0 gt {1} {-1} ifelse mul rlineto
+	closepath
+	fill
+	type (d) eq {
+		newpath
+		2.375 1.5 dy add moveto
+		0 -3 rlineto
+		0.25 0 rlineto
+		0 3 rlineto
+		closepath
+		fill
+	}{
+		type (e) eq {
+			0 1 2 {
+			/i exch def
+			newpath
+				2.375 1.5 i 1.125 mul sub dy add moveto
+				0 -0.78125 rlineto
+				0.25 0 rlineto
+				0 0.78125 rlineto
+				closepath
+			fill
+			} for
+		} if
+	} ifelse
+	newpath
+	4 dir (r) eq {4}{2} ifelse moveto
+	4 1 dy add lineto
+	2.625 1 dy add lineto
+	stroke
+	newpath
+	4 dir (r) eq {-2}{-4} ifelse moveto
+	4 -1 dy add lineto
+	2.625 -1 dy add lineto
+	stroke
+	pn (p) eq {
+		2.625 dy 4 dy 20 0.65 1 arrow
+	}{
+		pn (n) eq {
+			4 dy 2.625 dy 20 0.65 1 arrow
+		} if
+	} ifelse
+	dir (r) eq {
+		newpath
+		pn (p) eq {
+				4 dy moveto
+		}{
+			3.875 dy moveto
+			0.125 0 rlineto
+		} ifelse
+		0 -1 rlineto
+		stroke
+		newpath
+		4 -1 dy add 0.2 0 360 arc
+		fill
+	}{
+		dir (l) eq {
+		newpath
+		newpath
+		pn (p) eq {
+			4 dy moveto
+		}{
+			3.875 dy moveto
+			0.125 0 rlineto
+		} ifelse
+		0 1 rlineto
+		stroke
+		newpath
+		4 1 dy add 0.2 0 360 arc fill
+		} if
+	} ifelse
+	grestore
+} def
+
+% MOSFET簡略表記? IC内の素子を書く場合
+/MOSTR {
+	gsave
+	1 dict begin
+	/pn exch def
+	startfig
+	newpath
+	1.8 1 moveto
+	0 -2 rlineto
+	stroke
+	newpath
+	4 2 moveto
+	4 1 lineto
+	2.25 1 lineto
+	2.25 -1 lineto
+	4 -1 lineto
+	4 -2 lineto
+	stroke
+	pn (n) eq {
+		newpath
+		0 0 moveto
+		1.8 0 rlineto
+		stroke
+	}{
+		pn (p) eq {
+		newpath
+		0 0 moveto
+		1.24 0 rlineto
+		1.52 0 0.28 -180 180 arc
+		stroke
+		} if
+	} ifelse
+	grestore
+} def
+
+% npnダーリントントランジスタ LM13600など向け
+/npnnpn {
+	gsave
+	1 dict begin
+	/dir exch def
+	startfig
+	newpath
+	3 0 2.25 0 360 arc
+	stroke
+	newpath
+	0 0 moveto
+	1.25 0 lineto
+	stroke
+	newpath
+	1.25 0.75 moveto
+	0 -1.5 rlineto
+	0.25 0 rlineto
+	0 1.5 rlineto
+	closepath
+	fill
+	newpath
+	4 3 moveto
+	4 2.015564437 lineto
+	stroke
+	newpath
+	4 -3 moveto
+	4 -2.015564437 lineto
+	stroke
+	dir (l) eq {
+		1 -1 scale
+	} if
+	newpath
+	4 1 0.2 0 360 arc
+	fill
+	newpath
+	4 1 moveto
+	2.5 1 lineto
+	1.4 0.3 lineto
+	stroke
+	1.4 -0.3 2.525 -1.0159090909 15 0.6 1 arrow
+	2.5 -1 translate
+	newpath
+	0.25 0.75 moveto
+	0 -1.5 rlineto
+	0.25 0 rlineto
+	0 1.5 rlineto
+	closepath
+	fill
+	newpath
+	0 0 moveto
+	0.25 0 lineto
+	stroke
+	newpath
+	1.5 3.015564437 moveto
+	1.5 1 lineto
+	0.4 0.3 lineto
+	stroke
+	0.4 -0.3 1.5 -1 15 0.6 1 arrow
+	-2.5 1 translate
+	end
+	grestore
+} def
+
+% フォトトランジスタカプラ x y theta Dの向き trの極性 trの向き
+/photocoupler {
+	3 dict begin
+	/dir exch def
+	/pn exch def
+	/dir_d exch def
+	gsave
+	startfig
+	1.25 1.25 scale
+
+	gsave
+	2 -2 90 dir_d (r) eq {-1} {1} ifelse mul startfig
+	0.75 0.75 scale
+	D_ker
+	grestore
+
+	newpath
+	0 0 moveto
+	2 0 lineto
+	2 -4 lineto
+	0 -4 lineto
+	stroke
+
+	newpath
+	8 0 moveto
+	6.8 0 lineto
+	6.8 -4 moveto
+	8 -4 lineto
+	stroke
+	
+	gsave
+	6.8 -2 0 startfig
+	0.666667 0.666667 scale
+
+	dir (l) eq {
+		1 -1 scale
+	} if
+	newpath
+	-2.125 1.25 moveto
+	0 -2.5 rlineto
+	0.375 0 rlineto
+	0 2.5 rlineto
+	closepath
+	fill
+	newpath
+	0 3 moveto
+	0 2.015564437 lineto
+	stroke
+	newpath
+	0 -3 moveto
+	0 -2.015564437 lineto
+	stroke
+	newpath
+	0 2.015564437 moveto
+	-1.8 0.52 lineto
+	stroke
+	pn (n) eq {
+		-1.8 -0.52 0 -2.015564437 15 1 1 arrow
+	}{
+		0 -2.015564437 -1.8 -0.52 15 1 1 arrow
+	} ifelse
+	grestore
+
+	newpath
+	3 -2.2 moveto
+	4.2 -2.2 lineto
+	3.8 -1.8 lineto
+	4.5 -1.8 lineto
+	stroke
+	5 -1.8 1 0 20 0.5 20 cos div arrowhead
+
+	newpath
+	0.5 0.5 moveto
+	0.5 -4.5 lineto
+	7.5 -4.5 lineto
+	7.5 0.5 lineto
+	closepath
+	stroke
+	grestore
+} def
+
+/OPAmp_ker {
+	2 dict begin
+	/power exch def
+	/pmdir exch def
+
+	newpath
+	0 0 moveto
+	-6 3.5 rlineto
+	0 -7 rlineto
+	closepath
+	stroke
+	power 2 mod 1 eq {%	1: +Vcc only , 2: -Vee only 3: both.
+		newpath
+		-3 3 moveto
+		0 -1.25 rlineto
+		stroke
+	} if
+	power 2 idiv 1 eq {
+		newpath
+		-3 -3 moveto
+		0 1.25 rlineto
+		stroke
+	} if
+	newpath
+	-5.5 2 moveto
+	1 0 rlineto
+	-5.5 -2 moveto
+	1 0 rlineto
+	stroke
+	newpath
+	-5 2.5 pmdir mul moveto
+	0 -1 pmdir mul rlineto
+	stroke
+	end
+} def
+
+% OPAmp 引数x y theta pmdir power
+/OPAmp {
+	gsave
+	2 dict begin
+	/power exch def
+	/pmdir exch def% 1 -> '+' is right side seen from output terminal. -1 -> right side.
+	startfig
+	newpath
+	0 0 moveto
+	-1 0 rlineto
+	stroke
+	newpath
+	-8 2 moveto
+	1 0 rlineto
+	-8 -2 moveto
+	1 0 rlineto
+	stroke
+	gsave
+	-1 0 translate
+	pmdir power OPAmp_ker
+	grestore
+	grestore
+} def
+
+%Transconductance OPAmp
+/OTAmp {
+	gsave
+	3 dict begin
+	/I0dir  exch def
+	/power exch def
+	/pmdir exch def
+	startfig
+	newpath
+	-10 2 moveto
+	1 0 rlineto
+	-10 -2 moveto
+	1 0 rlineto
+	stroke
+	newpath
+	0 0 moveto
+	-1 0 rlineto
+	stroke
+	newpath
+	-2 2 I0dir mul moveto
+	0 -1.5 I0dir mul rlineto
+	stroke
+	newpath -3 0.625 add 0 0.625 0 360 arc stroke
+	newpath -1 0.625 sub 0 0.625 0 360 arc stroke
+	gsave
+	-3 0 translate
+	pmdir power OPAmp_ker
+	grestore
+	grestore
+} def
+
+/logicwire {
+	6 dict begin
+	/or exch def
+	/not exch def% 1: not.
+	/dir exch def% +1: wire extends toward right, -1: wire extends toward left.
+	/l exch def
+	/y exch def
+	/x exch def
+	x y moveto
+	
+	or 1 eq {% modification of length for OR.
+		/mody y 10 mul y 0 ge {14}{-14} ifelse add cvi 28 mod y 0 ge {14}{-14} ifelse sub 10 div def
+		/l l 1 1 mody mody mul 7.84 div sub sqrt sub 2.8 mul sub def
+	} if
+	
+	not 1 eq {
+		l 0.56 sub dir mul 0 rlineto
+		x l 0.28 sub dir mul add y 0.28 dir 1 eq {-180 180} {0 360} ifelse arc
+	} {
+		l dir mul 0 rlineto
+	} ifelse
+	stroke
+	end
+} def
+
+/logicin {
+	11 dict begin
+	/x exch def
+	/type exch def %0: AND, 1: OR, 2:XOR.
+	/in exch def
+	/innum in length def
+	innum 2 gt {
+		innum 2 mod 0 eq {
+			/offset 0.5 def
+		}{
+			/offset 0 def
+		} ifelse
+		/start innum 1 sub 2 div def
+		/l start 0.4 add def
+		type 1 ge {
+			/circnum l 10 mul 14 sub cvi 28 idiv def
+			/dy l circnum 1 add 2.8 mul sub 2.8 div def
+			/theta dy 1 dy dy mul sub sqrt atan def
+			newpath
+			-1.792820323 3.5 mul x sub circnum 1 add 2.8 mul 0.8 3.5 mul theta 330 arcn
+			circnum -1 circnum -1 mul {
+			/i exch def
+			-1.792820323 3.5 mul x sub i 2.8 mul 0.8 3.5 mul 30 -30 arcn
+			} for
+			-1.792820323 3.5 mul x sub circnum 1 add -2.8 mul 0.8 3.5 mul -330 theta -1 mul arcn
+			stroke
+			type 2 eq {
+				newpath
+				-1.792820323 3.5 mul x sub 0.35 sub circnum 1 add 2.8 mul 0.8 3.5 mul theta 330 arcn
+				circnum -1 circnum -1 mul {
+				/i exch def
+				-1.792820323 3.5 mul x sub 0.35 sub i 2.8 mul 0.8 3.5 mul 30 -30 arcn
+				} for
+				-1.792820323 3.5 mul x sub 0.35 sub circnum 1 add -2.8 mul 0.8 3.5 mul -330 theta -1 mul arcn
+				stroke
+			} if
+		}{
+			newpath
+			-6 x add l moveto
+			0 -2 l mul rlineto
+			stroke
+		} ifelse
+		0 1 innum 1 sub {
+			/i exch def
+			in i get 110 eq {% 110: ASCII code of 'n'.
+				/not 1 def
+			}{
+				/not 0 def
+			} ifelse
+			-6 start i sub x 1 not type 1 ge {1} {0} ifelse logicwire
+		} for
+	}{
+		0 1 1{
+			/i exch def
+			in i get 110 eq {
+				/not 1 def
+			}{
+				/not 0 def
+			} ifelse
+			-6 1 i 2 mul sub x 1 not type 1 ge {1} {0} ifelse logicwire
+		} for
+	} ifelse
+	end
+} def
+
+/AND {
+	gsave
+	3 dict begin
+	/power exch def
+	/o exch def
+	/i exch def
+	startfig
+	gsave
+	-1.25 0 translate
+	AND_ker
+	grestore
+	i 0 1.25 logicin
+	0 0 1.25 -1 o 0 logicwire
+	power 2 mod 1 eq {%	1: +Vcc only , 2: -Vee only 3: both.
+		newpath
+		-3 2 moveto
+		0 -0.6 rlineto
+		stroke
+	} if
+	power 2 idiv 1 eq {
+		newpath
+		-3 -2 moveto
+		0 0.6 rlineto
+		stroke
+	} if
+	end
+	grestore
+} def
+
+/AND_ker {
+	newpath
+	-0.4 3.5 mul 0 0.4 3.5 mul -90 90 arc
+	-0.6 3.5 mul 0 rlineto
+	0 -0.8 3.5 mul rlineto
+	0.6 3.5 mul 0 rlineto
+	closepath
+	stroke
+} def
+
+/OR {
+	gsave
+	3 dict begin
+	/power exch def
+	/o exch def
+	/i exch def
+	startfig
+	gsave
+	-1.25 0 translate
+	OR_ker
+	grestore
+	i 1 1.25 logicin
+	0 0 1.25 -1 o 0 logicwire
+	power 2 mod 1 eq {%	1: +Vcc only , 2: -Vee only 3: both.
+		newpath
+		-3 2 moveto
+		0 -0.682547340 rlineto
+		stroke
+	} if
+	power 2 idiv 1 eq {
+		newpath
+		-3 -2 moveto
+		0 0.682547340 rlineto
+		stroke
+	} if
+	end
+	grestore
+} def
+
+/OR_ker {
+	newpath
+	-0.692820323 3.5 mul -0.4 3.5 mul 0.8 3.5 mul 30 90 arc
+	-0.307179677 3.5 mul 0 rlineto
+	-1.792820323 3.5 mul 0 0.8 3.5 mul 30 -30 arcn
+	0.307179677 3.5 mul 0 rlineto
+	-0.692820323 3.5 mul 0.4 3.5 mul 0.8 3.5 mul -90 -30 arc
+	closepath
+	stroke
+} def
+
+/BUF {
+	gsave
+	3 dict begin
+	/power exch def
+	/o exch def
+	/i exch def
+	startfig
+	gsave
+	-0.93911888 0 translate
+	BUF_ker
+	grestore
+	0 0 0.93911888 -1 o 0 logicwire
+	-4 0 0.93911888 1 i 0 logicwire
+	power 2 mod 1 eq {%	1: +Vcc only , 2: -Vee only 3: both.
+		newpath
+		-2 1 moveto
+		0 -0.3875 rlineto
+		stroke
+	} if
+	power 2 idiv 1 eq {
+		newpath
+		-2 -1 moveto
+		0 0.3875 rlineto
+		stroke
+	} if
+	end
+	grestore
+} def
+
+/BUF_ker {
+	newpath
+	0 0 moveto
+	-2.12176224 1.225 rlineto
+	0 -2.45 rlineto
+	closepath
+	stroke
+} def
+
+/XOR {
+	gsave
+	3 dict begin
+	/power exch def
+	/o exch def
+	/i exch def
+	startfig
+	gsave
+	-1.25 0 translate
+	XOR_ker
+	grestore
+	i 2 1.25 logicin
+	0 0 1.25 -1 o 0 logicwire
+	power 2 mod 1 eq {%	1: +Vcc only , 2: -Vee only 3: both.
+		newpath
+		-3 2 moveto
+		0 -0.682547340 rlineto
+		stroke
+	} if
+	power 2 idiv 1 eq {
+		newpath
+		-3 -2 moveto
+		0 0.682547340 rlineto
+		stroke
+	} if
+	end
+	grestore
+} def
+
+/XOR_ker {
+	OR_ker
+	newpath
+	-1.792820323 3.5 mul 0.35 sub 0 0.8 3.5 mul 30 -30 arcn
+	stroke
+} def
+
+% endinput
+
+% sample output
+%6 68 AC_3Y
+2 60 0 xtalsp
+2 70 0 dynamicsp
+2 40 0 ceralock
+2 2 0 R
+2 6 0 0 L
+2 10 0 2 L
+2 14 0 C
+2 18 0 BATT
+2 22 0 AC
+2 26 0 current
+2 30 0 sw
+2 34 0 pushsw
+8 10 0 1 togglesw
+8 14 0 -1 togglesw
+8 18 0 D
+8 22 0 ZD
+8 26 0 LED
+8 34 0 PD
+8 38 0 SBD
+8 42 0 VCD
+8 46 90 (l) SCR
+8 2 90 AC
+14 2 0 0 VR_3
+14 6 0 1 VR_3
+14 10 GND1
+14 14 GND2
+14 18 GND3
+20 14 0 (n) (r) TR
+20 22 0 (n) (l) TR
+20 30 0 (p) (r) TR
+20 38 0 (p) (l) TR
+28 6 0 -1 3 OPAmp
+20 46 0 (p) (c) FET
+20 54 0 (n) (c) FET
+30 70 0 (p) MOSTR
+30 78 0 (n) MOSTR
+30 86 0 (n) (r) FET
+30 96 0 (n) (l) FET
+30 102 0 (p) (r) FET
+30 112 0 (p) (l) FET
+30 4 0 (e) (n) (r) MOSFET
+30 14 0 (e) (n) (l) MOSFET
+30 20 0 (e) (p) (r) MOSFET
+30 30 0 (e) (p) (l) MOSFET
+30 36 0 (d) (n) (r) MOSFET
+30 46 0 (d) (n) (l) MOSFET
+30 52 0 (d) (p) (r) MOSFET
+30 62 0 (d) (p) (l) MOSFET
+48 6 0 1 3 1 OTAmp
+44 30 0 (ppppppp) 1 3 AND
+52 16 0 (nnnnnnnnnnnnn) 0 3 OR
+52 26 0 (nn) 0 0 OR
+52 30 0 (ppp) 0 0 OR
+52 34 0 (pppp) 1 0 OR
+52 40 0 (ppppp) 1 0 OR
+52 46 0 (nnnnnn) 1 0 OR
+52 54 0 (ppppppp) 1 0 OR
+52 62 0 (pppppppp) 0 0 OR
+52 72 0 (ppppppppp) 0 0 OR
+44 48 0 (ppppppppppppp) 0 3 XOR
+44 14 0 0 0 3 BUF
+44 18 0 1 0 3 BUF
+44 22 0 1 1 3 BUF
+44 26 0 0 1 3 BUF
+
+gsave
+2 50 0 startfig
+0 0 0 10 1 L_univ
+	1 1 10 {
+		tap
+	} for
+grestore
+2 47 0 1 L
+
+%transformer
+gsave
+2 54 0 startfig
+0 0 0 5 2 L_univ
+% tap on the first coil.
+1 tap
+
+3 1 1 add add 3 180 1 0 L_univ
+% tap on the second coil.
+3 1 sub 1 add tap
+grestore
+
+20 60 0 (r) npnnpn
+
+20 80 0 (r) (n) (r) photocoupler
+20 86 0 (l) (p) (r) photocoupler
+
+20 70 0 DBridge
+14 22 0 fuse
+14 26 0 1 VR_2
+14 30 0 0 VR_2
+14 34 0 4 CC
+14 38 180 1 pushtogglesw
+14 42 270 0 VC
+14 46 0 Z
+56 8 0 1 BATT_univ
+56 12 0 6 BATT_univ
+
+%%EOF

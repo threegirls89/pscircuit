@@ -1,0 +1,7 @@
+*.aux
+doc/*.eps
+*.gz
+*.log
+*.toc
+*.dvi
+

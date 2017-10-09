@@ -1,0 +1,2573 @@
+\documentclass[10pt,a4j,twoside]{jsarticle}
+%
+\usepackage{amsmath,amssymb}
+\usepackage[dvipdfmx]{graphicx,color}
+\usepackage{multicol}
+%
+\usepackage{pscircuit}
+\usepackage{pscelements}
+%
+%%%%%%%%%%%%%%%%%寸法設定%%%%%%%%%%%%%%%%
+\setlength{\topmargin}{13truemm}
+\addtolength{\topmargin}{-1truein}
+\setlength{\oddsidemargin}{25truemm}
+\addtolength{\oddsidemargin}{-1truein}
+\setlength{\evensidemargin}{15truemm}
+\addtolength{\evensidemargin}{-1truein}
+\setlength{\textheight}{257truemm}
+\setlength{\fullwidth}{170truemm}
+\setlength{\textwidth}{\fullwidth}
+%
+\allowdisplaybreaks% 数式中での改頁許可.
+%
+% mymacroから引っ張ってきたmacros
+%
+% 角括弧囲みroman体の単位
+\def\unit[#1]{%
+\ifmmode \mathrm{[#1]} \else $\mathrm{[#1]}$ \fi}
+%
+% 曜日の表示(Zellerの公式)
+\def\dayofweek{%
+{\count0=\year \count1=\month
+\ifnum \count1<3
+ \advance \count0 by -1
+ \advance \count1 by 12
+\fi
+\multiply \count1 by 13
+\advance \count1 by 8
+\divide \count1 by 5
+\advance \count1 by \count0
+\divide \count0 by 4
+\advance \count1 by \count0
+\divide \count0 by 25
+\advance \count1 by -\count0
+\divide \count0 by 4
+\advance \count1 by \count0
+\advance \count1 by \day
+\count0=\count1
+\divide \count1 by 7
+\multiply \count1 by 7
+\advance \count0 by -\count1
+\ifcase \count0 日\or 月\or 火\or 水\or 木\or 金\or 土\fi}}
+%
+% 時刻を表示.
+\makeatletter
+\def\ddigit#1{\setbox0=\hbox{9}\setbox1=\hbox{#1}%
+  \ifdim \wd0<\wd1 #1\else 0#1\fi}
+\newcounter{hour}
+\newcounter{HOUR}
+\newcounter{minuite}
+\setcounter{hour}{\the\time} \divide \c@hour by 60
+\setcounter{HOUR}{\thehour} \multiply \c@HOUR by 60
+\setcounter{minuite}{\the\time} \advance \c@minuite by -\c@HOUR
+\def\digitalhour{\ddigit{\thehour}}
+\def\digitalminuite{\ddigit{\theminuite}}%
+%
+% maketitle再定義
+\gdef\@comment{作成}
+\global\let\@date\empty
+\renewcommand{\maketitle}{%
+\begin{center}
+{\@title}
+\par
+\bigskip
+\ifx\@date\empty
+\today (\dayofweek)
+\digitalhour:\digitalminuite
+\else
+\@date
+\fi
+\@comment.
+\hfil \@author.
+\end{center}%
+\global\let\@comment\empty
+\global\let\comment\relax
+\global\let\@date\empty
+\global\let\date\relax%
+}
+\long\def\title#1{\long\global\def\@title{#1}}
+\long\def\comment#1{\long\global\def\@comment{#1}}
+\def\date#1{\gdef\@date{#1}}
+%
+%
+% pscircuit向け×の表示
+\def\ccross(#1,#2)#3{
+\immediate\write\psc@epsfile{newpath #1 #3 2 div sub #2 #3 2 div sub moveto #3 #3 rlineto 0 #3 -1 mul rmoveto #3 -1 mul #3 rlineto stroke}
+}
+\def\cross(#1,#2){
+\ccross(#1,#2){0.5}
+}
+\makeatother
+%
+\pagestyle{myheadings}
+\markboth{}{\texttt{pscircuit}コマンドリファレンス}
+%
+\def\Section#1{%
+\clearpage
+\section{#1}
+\markboth{\thesection　#1}{\texttt{pscircuit}コマンドリファレンス}
+}
+\def\Subsection{\clearpage\subsection}
+\def\lowerbox#1{\setbox0=\hbox{#1} \lower0.5\ht0\box0}
+\def\Item{\par\bigskip\item}
+%
+\begin{document}
+\thispagestyle{empty}
+\title{\vbox{\centering \bgroup\bfseries\huge\texttt{pscircuit}コマンドリファレンス\egroup \par \bgroup \large for ver.1.0.1 \egroup}}
+\author{threegirls89}
+\comment{作成}
+\maketitle
+\begin{abstract}
+\texttt{pscircuit}パッケージは\LaTeX{}にて電気回路, 電子回路の回路図を描画するためのスタイルファイル群である.
+本コマンドリファレンスでは\texttt{pscircuit}パッケージの, ユーザーの使用可能な全コマンドを解説する.
+バグなどの報告, 追加機能の要望は筆者まで.
+\end{abstract}
+\setcounter{tocdepth}{3}
+\tableofcontents
+
+\vfill
+\hfill \texttt{pscircuit.sty} Copyright {\copyright} 2013--2016 threegirls89.
+
+
+\Section{はじめに}
+\texttt{pscircuit}パッケージは\LaTeX{}にて電気回路, 電子回路の回路図を描画するためのスタイルファイル群である.
+筆者(threegirls89)は電子工学科の学生であったため, 報告書を書く際に回路図を\LaTeX{}により描画出来れば と予てから思っていた.
+回路図を描画するマクロはcircuitikzを筆頭に数多あるが, 素子の種類が少なかったりフォントが古かったり, 図記号が欧米式だったり，使い勝手が悪いものが殆んどである, と筆者の感想である.
+そこで回路図を描画するマクロを自作する事になった次第である.
+2013年9月頃から製作を始め, 2014年1月に$\beta$版を完成, 2016年8月に安定版をリリースした.
+
+\texttt{pscircuit.sty}の名称は, 次に述べるように回路(\textit{circuit})をPostScript(\textit{ps})で描画している事によるという, 安直な命名である.
+もっと気の利いた名称にすれば好かったかもしれない.
+本スタイルファイルでは回路図をPostScriptにより描画し, \LaTeX{}のpicture環境に重ねて配置, 文字等は\LaTeX{}の機能で表示する.
+この方法をとると, picture環境の制約に囚われず種々の図形をEPSとして美しく描画出来る上, 図中の文字をpicture環境で埋め込むので\LaTeX{}のフォントを使えるという利点がある.
+pdflatex, platex$+$dvipdfmxなどによるPDF直接出力が全盛の現代では幾分obsoleteな方法であるとも言える.
+TikZによる実装に移植するか検討中である. postscriptを, 単に図を書くだけでなく言語としての機能を活用しているため難しいかもしれない.
+
+尚, \texttt{pscircuit.sty}の運用に伴う如何なる結果の, 責任の一切を筆者は負いかねます. ご承知おき下さい.
+
+
+\Section{使用方法}
+\texttt{pscircuit}パッケージの使用方法を説明する.
+
+まず, 本パッケージの構成を説明する.
+パッケージを構成するファイルとその機能は以下の通りである.
+
+\begin{tabular}{lp{38zw}}
+	\texttt{pscircuit.sty} & pscircuit環境本体, 線, 文字列, ICなどの基本描画コマンドを定義する. \\
+	\texttt{pscelements.sty} & 回路素子描画コマンドを定義する. \\
+	\texttt{pscepspreamble.sty} & \texttt{pscircuit.sty}にある描画コマンドの補助となるpostscriptコードを出力する. \texttt{pscircuit.sty}により読み込まれる. \\
+	\texttt{pscelementseps.sty} & \texttt{pscelements.sty}にある描画コマンドの補助となるpostscriptコードを出力する. \texttt{pscelements.sty}により読み込まれる.
+
+
+
+\end{tabular}
+
+\medskip
+使用前に全てのスタイルファイルをひとまとめにして適当なディレクトリ(\texttt{texmf/}のどこか, 等)に置く.
+必要なスタイルファイルを\verb|\usepackage|して使用する.
+「〜により読み込まれる」とあるスタイルファイルを明示的に\verb|\usepackage|する必要はない.
+
+\Section{コマンド解説}
+\texttt{pscircuit}を構成するコマンドは, 大別すると\texttt{pscircuit}環境本体, 配線描画, 回路素子描画, IC描画, その他の機能がある.
+\subsection{\texttt{pscircuit}環境}
+回路図を描画する\texttt{pscircuit}環境の本体である.
+\begin{description}
+\item[書式] \verb/\begin{pscircuit}[#1](#2,#3)(#4,#5)/ \dots 回路図要素 \dots \verb/\end{pscircuit}/
+\medskip
+
+\item[引数] \begin{tabular}[t]{cl}
+\texttt{\#1} & 図の単位長. 単位付の寸法を指定. \\
+\texttt{(\#2,\#3)} & 図の左下座標$(x_{\mathit{min}},y_{\mathit{min}})$. 単位は\texttt{\#1}の単位長. 小数も可.\\
+\texttt{(\#4,\#5)} & 図の右上座標$(x_{\mathit{max}},y_{\mathit{max}})$. 単位は\texttt{\#1}の単位長. 小数も可.
+\end{tabular}
+
+\medskip
+
+\item[機能] 新たな\texttt{pscircuit}環境を作成する. 回路図作成コマンドは全て, \texttt{pscircuit}環境の中に記述する.
+\item[注意] \texttt{pscircuit.sty}の使用時には\texttt{graphicx.sty}が必須である. 適切なDVIドライバを指定して\verb|\usepackage|してほしい.
+
+\item[例] \texttt{pscircuit}環境の書き方の基本を示す.
+\medskip
+\begin{quote}
+\setlength{\baselineskip}{14pt}
+\begin{verbatim}
+\documentclass...
+% プリアンブル部
+\usepackage[...]{graphicx}% graphicx.styは必須
+\usepackage{pscircuit}% pscircuit環境本体
+\usepackage{pscelements}% 回路素子描画コマンド
+...
+\begin{document}
+%本文
+...
+\begin{pscircuit}[8pt](0,0)(20,15)% pscircuit環境開始
+% 回路素子描画コマンドをここに書く
+\BATT(3,6)[b]
+\R(5,7)[r]
+\wire(3,6)(3,7)(5,7)
+...
+\end{pscircuit}% pscircuit環境終了
+...
+\end{document}
+\end{verbatim}
+\end{quote}
+\end{description}
+
+\Subsection{配線系描画コマンド}
+配線, 接続点など, 回路素子以外の描画コマンドを示す.
+
+\subsubsection{配線}
+配線と接続点, それらのサイズ指定コマンド.
+\begin{itemize}
+\item 配線描画
+\begin{description}
+\item[書式] \verb/\wire(#1,#2)(#3,#4)...(#2i-1,#2i)...(#2n-1,#2n)/
+\item[引数] \begin{tabular}[t]{cl}
+\texttt{(\#1,\#2)} & 始点座標$(x_1,y_1)$. \\
+\texttt{(\#2i-1,\#2i)} & 中継座標$(x_i,y_i)$. \\
+\texttt{(\#2n-1,\#2n)} & 終点座標$(x_n,y_n)$.
+\end{tabular}
+\item[機能] 始点座標, 中継座標, 終点座標を順に直線で結ぶ. 中継座標は幾つあっても好い.
+
+\item[例]
+
+\begin{minipage}{0.45\textwidth}
+\begin{verbatim}
+\begin{pscircuit}[20pt](0,0)(5,5)
+\wire(1,1)(1,2)(2,2)(2,3)(3,3)(3,4)(4,4)
+\end{pscircuit}
+\end{verbatim}
+\end{minipage}
+%
+\begin{minipage}{0.45\textwidth}
+\centering
+\begin{pscircuit}[20pt](0,0)(5,5)
+\wire(1,1)(1,2)(2,2)(2,3)(3,3)(3,4)(4,4)
+\end{pscircuit}
+\end{minipage}
+\end{description}
+
+\Item 配線太さ変更
+\begin{description}
+\item[書式] \verb/\setlinewidth#1/
+\item[引数] \begin{tabular}[t]{cl}
+\texttt{\#1} & 線の太さ. 正の小数を指定する. 内部ではPostScriptの\unit[pt]単位として扱われる.
+\end{tabular}
+\item[機能] 線の太さを変更する. 初期値は$0.5$である. \verb|\wire|で描画される配線だけでなく, 回路素子を構成する線の太さも変わるので, 注意が必要である. 不具合は起きないようにしたつもりだが.
+\end{description}
+
+\Item 接続点
+\begin{description}
+\item[書式] \verb/\joint(#1,#2)/
+\item[引数] \begin{tabular}[t]{cp{13zw}}
+\texttt{(\#1,\#2)} & 座標$(x,y)$.
+\end{tabular}
+\item[機能] 座標$(x,y)$に接続点(黒丸)を描画する.
+\item[例] 丁(てい)字の交叉における接続点.
+
+\medskip
+\begin{minipage}{0.45\textwidth}
+\begin{verbatim}
+\begin{pscircuit}[10pt](-2,-2)(2,2)
+\wire(-2,0)(2,0)
+\wire(0,0)(0,-2)
+\joint(0,0)
+\end{pscircuit}
+\end{verbatim}
+\end{minipage}
+%
+\begin{minipage}{0.45\textwidth}
+\centering
+\begin{pscircuit}[10pt](-2,-2)(2,2)
+\wire(-2,0)(2,0)
+\wire(0,0)(0,-2)
+\joint(0,0)
+\end{pscircuit}
+\end{minipage}
+\end{description}
+
+\Item 接続点サイズ変更
+\begin{description}
+\item[書式] \verb/\jointsize#1/
+\item[引数] \begin{tabular}[t]{cl}
+\texttt{\#1} & 接続点の半径\unit[ul].
+\end{tabular}
+\item[機能] 接続点のサイズを変更する. 初期値は0.125\unit[ul]である.
+\end{description}
+\end{itemize}
+
+\subsubsection{端子}
+\begin{itemize}
+\item 端子描画
+\begin{description}
+\item[書式] \verb/\term(#1,#2)/
+\item[引数] \begin{tabular}[t]{cl}
+\texttt{(\#1,\#2)} & 座標$(x,y)$.
+\end{tabular}
+\item[機能] 座標$(x,y)$に, 白丸を描画する.
+\item[注意] 白丸は配線を上から塗りつぶすので, 配線コマンドの後に使用する.  順番を逆にすると白丸の上に線が描画される.
+\item[例] 左側の白丸は正しい順, 右側は誤った順に記述した例.
+
+\medskip
+\begin{minipage}{0.45\textwidth}
+\begin{verbatim}
+\begin{pscircuit}[10pt](-1,-1)(5,1)
+\term(4,0)
+\wire(0,0)(4,0)
+\term(0,0)
+\end{pscircuit}
+\end{verbatim}
+\end{minipage}
+%
+\begin{minipage}{0.45\textwidth}
+\centering
+\begin{pscircuit}[10pt](-1,-1)(5,1)
+\term(4,0)
+\wire(0,0)(4,0)
+\term(0,0)
+\end{pscircuit}
+\end{minipage}
+\end{description}
+
+\Item 端子サイズ変更
+\begin{description}
+\item[書式] \verb/\termsize#1/
+\item[引数] \begin{tabular}[t]{cl}
+\texttt{\#1} & 端子の半径\unit[ul].
+\end{tabular}
+\item[機能] 端子のサイズを変更する. 初期値は0.25\unit[ul]である.
+\end{description}
+\end{itemize}
+
+\subsubsection{矢印}
+矢印の描画. 回路図中の電圧, 電流を示す際に使える.
+\begin{description}
+\item[書式] \verb/\arrow(#1,#2)(#3,#4)#5#6/
+\item[引数] \begin{tabular}[t]{cl}
+\texttt{(\#1,\#2)} & 始点座標$(x_1,y_1)$. \\
+\texttt{(\#3,\#4)} & 終点座標$(x_2,y_2)$. \\
+\texttt{\#5} & 鏃(やじり)の開き角度\unit[\deg]. \\
+\texttt{\#6} & 鏃の大きさ\unit[ul].
+\end{tabular}
+\item[機能] 始点座標から終点座標に向かう矢印を描画する.
+\item[例] \mbox{}
+
+\begin{minipage}{0.46\textwidth}
+\begin{verbatim}
+\begin{pscircuit}[8pt](0,-1)(11,1)
+\arrow(0,0)(10,0){15}{3}
+\end{pscircuit}
+\end{verbatim}
+\end{minipage}
+%
+\begin{minipage}{0.46\textwidth}
+\centering
+\begin{pscircuit}[8pt](0,-1)(11,1)
+\arrow(0,0)(10,0){15}{1}
+\end{pscircuit}
+\end{minipage}
+\end{description}
+
+\subsubsection{文字列}
+回路図中に文字列を描画する. 部品番号, 素子値等の描画に使える.
+\begin{itemize}
+\item 文字列描画
+\begin{description}
+\item[書式] \verb/\putstr(#1,#2)[#3](#4,#5)#6/
+\item[引数] \begin{tabular}[t]{cl}
+\texttt{(\#1,\#2)} & 基準座標$(x,y)$. \\
+\texttt{[\#3]} & 方向.(\texttt{rltbc}の何れか. 複数指定, 省略可. 省略した場合は\texttt{c}と同値) \\
+\texttt{(\#4,\#5)} & 基準座標からの微調整ベクトル.(省略可) \\
+\texttt{\#6} & 描画文字列.
+\end{tabular}
+\item[機能] 基準座標から微調整ベクトル分だけ移動した点において, 指定方向に文字列を描画する.
+\item[例] \mbox{}
+
+\begin{minipage}{0.45\textwidth}
+\begin{verbatim}
+\begin{pscircuit}[25pt](-2,-2)(2,2)
+\putstr(0,0){c}
+\putstr(1,0)[r]{r}
+\putstr(-1,0)[l]{l}
+\putstr(0,1)[t]{t}
+\putstr(0,-1)[b]{b}
+\putstr(1,0)(0.25,0){R}
+\putstr(-1,0)(-0.25,0){L}
+\putstr(0,1)(0,0.25){T}
+\putstr(0,-1)(0,-0.25){B}
+\putstr(0,0)[rt](1,1){rt}
+\putstr(0,0)[rb](1,-1){rb}
+\putstr(0,0)[lt](-1,1){lt}
+\putstr(0,0)[lb](-1,-1){lb}
+\end{pscircuit}
+\end{verbatim}
+\end{minipage}
+%
+\begin{minipage}{0.45\textwidth}
+\centering
+\begin{pscircuit}[25pt](-2,-2)(2,2)
+\grid*
+\strsize{\normalsize}
+\putstr(0,0){O}
+\putstr(1,0)[r]{r}
+\putstr(-1,0)[l]{l}
+\putstr(0,1)[t]{t}
+\putstr(0,-1)[b]{b}
+\putstr(1,0)(0.25,0){R}
+\putstr(-1,0)(-0.25,0){L}
+\putstr(0,1)(0,0.25){T}
+\putstr(0,-1)(0,-0.25){B}
+\putstr(0,0)[rt](1,1){rt}
+\putstr(0,0)[rb](1,-1){rb}
+\putstr(0,0)[lt](-1,1){lt}
+\putstr(0,0)[lb](-1,-1){lb}
+\end{pscircuit}
+\end{minipage}
+\end{description}
+
+\Item 文字フォントサイズ変更
+\begin{description}
+\item[書式] \verb/\strsize[#1], \strsize#1/
+\item[引数] \begin{tabular}[t]{cl}
+\texttt{\#1} & 文字フォントサイズ. \\
+& \texttt{[]}による指定時は単位付きの正実数, 他方の場合は相対サイズの指定.
+\end{tabular}
+\item[機能] \verb/\putstr/で出力される文字のフォントサイズを変更する. 初期値は\verb/\footnotesize/である. この命令以降のすべての文字に影響する. \verb/\putstr/の引数内でフォントサイズを指定した場合はそちらが優先される.
+\end{description}
+\end{itemize}
+
+\Subsection{回路素子描画コマンド}
+回路素子を描画するためのコマンドを示す.
+
+\textgt{注意}: 回路素子描画コマンドは全て\texttt{pscelements.sty}にて定義されている.
+使用の際は\texttt{pscelements.sty}を\verb|\usepackage|する必要がある.
+
+\textgt{注意}: 引数リストで\textgt{方向}とある物は,
+\begin{center}
+\texttt{r}: 右, \texttt{l}: 左, \texttt{t}: 上, \texttt{b}: 下
+\end{center}
+を表す.
+記号図においては, $\times$印にて始点を表し, 方向に特記無き物は引数に\texttt{r}を指定した物とする.
+
+\subsubsection{基本素子}
+抵抗, コンデンサ, コイル, 電源, グラウンドなどの電気回路における基本素子を描画するコマンド.
+
+\begin{itemize}
+	\item 抵抗\footnote{抵抗の記号は1997年以前の旧JIS規格準拠だが, こちらの方がより``抵抗''らしい. そう考える人がいるから新規格が広まらないのかもしれない.}
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\R(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-2)(5,2)
+				\grid*
+				\R(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+	\Item 可変抵抗
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb/\VR#1(#2,#3)[#4][#5]/
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{\#1} & 端子数. 2 or 3.\\
+					\texttt{(\#2,\#3)} & 始点座標$(x,y)$. \\
+					\texttt{[\#4]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{[\#5]} & 可変抵抗のタイプ. \\
+					& \texttt{t}: 半固定. 省略: 可変.
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{tabular}{lc}
+				\#1: 2, \#5: 省略 & 
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-3)(5,3)
+					\grid*
+					\VR2(0,0)[r]
+					\cross(0,0)
+					\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+				\#1: 3, \#5: t & 
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-3)(5,3)
+					\grid*
+					\VR3(0,0)[r][t]
+					\cross(0,0)
+					\end{pscircuit}}
+				\lower0.5\ht0\box0
+			\end{tabular}
+		\end{minipage}
+
+	\par\bigskip
+	\item 四角抵抗\footnote{新JIS規格の抵抗はこちら. 筆者はインピーダンスを表す際に使用することが多い.}
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\Z(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-2)(5,2)
+				\grid*
+				\Z(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+	\Item コンデンサ
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\C(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-2)(5,2)
+				\grid*
+				\C(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+	\Item 可変コンデンサ
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\VC(#1,#2)[#3][#4]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{[\#4]} & 可変コンデンサのタイプ. \\
+					& \texttt{t}: 半固定. \\
+					& 省略: 可変.
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{tabular}{lc}
+				\#4: 省略 &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(5,2)
+					\grid*
+					\VC(0,0)[r]
+					\cross(0,0)
+					\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+				\#4: t &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(5,2)
+					\grid*
+					\VC(0,0)[r][t]
+					\cross(0,0)
+					\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+			\end{tabular}
+		\end{minipage}
+
+		\Item 電解コンデンサ
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\CC(#1,#2)[#3][#4]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{[\#4]} & 極性を表す$+$の位置. 省略時は描画しない.
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力} \hfill
+			\par
+			\centering
+			\begin{tabular}{lc}
+				\#4: 1 &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(5,2)
+					\grid*
+					\CC(0,0)[r][1]
+					\cross(0,0)
+					\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+				\#4: 2 &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(5,2)
+					\grid*
+					\CC(0,0)[r][2]
+					\cross(0,0)
+					\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+				\#4: 3 &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(5,2)
+					\grid*
+					\CC(0,0)[r][3]
+					\cross(0,0)
+					\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+				\#4: 4 &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(5,2)
+					\grid*
+					\CC(0,0)[r][4]
+					\cross(0,0)
+					\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+			\end{tabular}
+		\end{minipage}
+
+		\Item コイル\footnote{コイルの記号も旧JIS規格準拠であるが, より``コイル''らしい.}(簡易指定)
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb/\L(#1,#2)[#3][#4]/
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+						\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{[\#4]} & 芯の指定. 以下を指定する. \\
+					& \texttt{c}: 鉄心入り. 省略: 空心.
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力} \hfill
+			\par
+			\centering
+			\begin{tabular}{lc}
+				\#4: 省略 &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(5,2)
+					\grid*
+					\L(0,0)[r]
+					\cross(0,0)
+					\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+				\#4: c &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(5,2)
+					\grid*
+					\L(0,0)[r][c]
+					\cross(0,0)
+					\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+			\end{tabular}
+		\end{minipage}
+
+		\Item コイル(万能形)
+		\begin{description}
+			\item[書式] \verb/\L(#1,#2)[#3][#4](#5)[#6]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+				\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+				\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+				\texttt{[\#4]} & コイルのターン数. \\
+				\texttt{(\#5)} & タップを出す位置. 始点に近いターン頂点を1とする自然数を, タップの数だけ`,'区切りで入力. タップがない場合は\texttt{()}. \\
+				\texttt{[\#6]} & 芯の指定. 以下を指定する. \\
+				& \texttt{c}: 鉄心入り. \\
+				& 省略: 空心.
+			\end{tabular}
+		\item[出力] ターンの半径が簡易指定に較べて少し大きくなっている. (ターンの頂点を格子点に載せるためである.) 第一の例をみよ.
+			\par
+			\centering
+			\begin{tabular}[t]{lc}
+				\verb/\L(x,y)[r][5]()/ &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(14,2)
+					\grid*
+					\L(0,0)[r][5]()
+					\cross(0,0)
+					\L(10,0)[r]
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+				\verb/\L(x,y)[r][4](1,3)[c]/ &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(9,2)
+					\grid*
+					\L(0,0)[r][4](1,3)[c]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+			\end{tabular}
+		\end{description}
+
+		\Item トランス(変成器)
+		\begin{description}
+			\item[書式] \verb/\T(#1,#2)[#3][#4][#5][#6](#7)(#8)[#9]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+				\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+				\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+				\texttt{[\#4]} & 1次側コイルのターン数. \\
+				\texttt{[\#5]} & 2次側コイルのターン数. \\
+				\texttt{[\#6]} & 2次側コイルの変位. \\
+				\texttt{(\#7)} & 1次側コイルのタップを出す位置. 始点に近いターン頂点を1とする自然数を, タップの数だけ`,'区切りで入力. タップがない場合は\texttt{()}. \\
+				\texttt{(\#8)} & 2次側コイルのタップを出す位置. タップがない場合は\texttt{()}. \\
+				\texttt{[\#9]} & 芯の指定. 以下を指定する. \\
+				& \texttt{c}: 鉄心入り. 省略: 空心.
+			\end{tabular}
+			\item[出力] \hfill
+			\par
+			\centering
+				\begin{tabular}[t]{lll}
+				\verb/\T(x,y)[r][3][3][0](2)()[c]/ & \hspace{1em} &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(7,5)
+					\grid*
+					\T(0,0)[r][3][3][0](2)()[c]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+				\verb/\T(x,y)[r][3][5][-1](2)(1,3)[c]/ & &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](0,-2)(10,5)
+					\grid*
+					\T(2,0)[r][3][5][-1](2)(1,3)[c]
+					\cross(2,0)
+				\end{pscircuit}}
+			\lower0.5\ht0\box0 \\
+			\end{tabular}
+		\end{description}
+
+		\Item 電池, 直流電圧源
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\BATT(#1,#2)[#3][#4]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{[\#4]} & 電池の数. 省略時は1個.
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}\ 
+			\par
+			\centering
+			\begin{tabular}[t]{lc}
+				\#4: 省略 &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(9,2)
+					\grid*
+						\BATT(0,0)[r]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+				\#4: 4 &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(9,2)
+					\grid*
+					\BATT(0,0)[r][4]
+					\cross(0,0)
+				\end{pscircuit}}
+			\lower0.5\ht0\box0 \\
+			\end{tabular}
+		\end{minipage}
+
+		\Item GND
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\GND(#1,#2)#3|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+						\texttt{(\#1,\#2)} & 座標$(x,y)$. \\
+					\texttt{\#3} & GNDの種類. \\
+					& s: 信号GND, c: 筐体GND, e: 接地.
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}\
+			\par
+			\centering
+			\begin{tabular}[t]{lc}
+				\#3: s &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-2,-3)(2,1)
+					\grid*
+						\GND(0,0)s
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+				\#3: c &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-2,-3)(2,1)
+					\grid*
+						\GND(0,0)c
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+				\#3: e &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-2,-3)(2,1)
+					\grid*
+						\GND(0,0)e
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+			\end{tabular}
+		\end{minipage}
+
+		\Item 正電源$\mathrm{V_{CC}}$
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\Vcc(#1,#2){#3}|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{\#3} & 描画文字列. 省略時は$\mathrm{V_{CC}}$.
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-2,-1)(2,3)
+				\grid*
+				\Vcc(0,0)
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+		\Item 負電源$\mathrm{V_{EE}}$
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\Vee(#1,#2){#3}|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{\#3} & 描画文字列. 省略時は$\mathrm{V_{EE}}$.
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-2,-3)(2,1)
+				\grid*
+				\Vee(0,0)
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+	\Item 交流電圧源
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\AC(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-2)(5,2)
+				\grid*
+				\AC(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+		\Item 三相交流電圧源Y結線
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\ACstar(#1,#2)|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$.
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[6pt](-5,-5)(5,5)
+				\grid*
+				\ACstar(0,0)
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+		\Item メータ類
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\meter(#1,#2)[#3]#4|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{\#4} & 円内に描画する文字列. 描画しない場合は\verb|{}|.
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{tabular}{lc}
+				\#4: A &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(5,2)
+					\grid*
+						\meter(0,0)[r]A
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+			\end{tabular}
+		\end{minipage}
+
+		\Item 電流源
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\current(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-2)(5,2)
+				\grid*
+				\current(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+		\Item スイッチ(オルタネート, 単極単投)
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\SW(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+						\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-1)(5,2)
+				\grid*
+				\SW(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+		\Item スイッチ(モーメンタリ, 単極単投)
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\pushSW(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-1)(5,2)
+				\grid*
+				\pushSW(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+		\Item スイッチ(単極双投, オルタネート)
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb/\toggleSW(#1,#2)[#3][#4]/
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{[\#4]} & 共通端子と繋がる端子を指定. \\
+					& \texttt{l}: 共通端子から見て左側. \\
+					& \texttt{r}: 共通端子から見て右側.
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{tabular}{lc}
+				\#4: l &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(5,2)
+					\grid*
+					\toggleSW(0,0)[r][l]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+				\#4: r &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(5,2)
+					\grid*
+					\toggleSW(0,0)[r][r]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+			\end{tabular}
+		\end{minipage}
+
+	\Item スイッチ(単極双投, モーメンタリ)
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb/\pushtoggleSW(#1,#2)[#3][#4]/
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{[\#4]} & 共通端子と繋がる端子を指定. \\
+					& \texttt{l}: 共通端子から見て左側. \\
+					& \texttt{r}: 共通端子から見て右側.
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{tabular}{lc}
+				\#4: l &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(6,2)
+					\grid*
+					\pushtoggleSW(0,0)[r][l]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+				\#4: r &
+				\setbox0=\hbox{\begin{pscircuit}[8pt](-1,-2)(6,2)
+					\grid*
+					\pushtoggleSW(0,0)[r][r]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 \\
+			\end{tabular}
+		\end{minipage}
+
+	\Item 水晶振動子
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\xtal(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-2)(5,2)
+				\grid*
+				\xtal(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+	\Item クリスタルイヤホン, セラミック発音体
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\xtalsp(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-2)(5,4)
+				\grid*
+				\xtalsp(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+	\Item 水晶(セラミック)発振器
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\ceralock(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-4)(5,4)
+				\grid*
+				\ceralock(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+	\Item ダイナミックスピーカ
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\dynamicsp(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-1)(5,3)
+				\grid*
+				\dynamicsp(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+	\Item フューズ
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\fuse(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-2)(5,2)
+				\grid*
+				\fuse(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+\end{itemize}
+
+
+\subsubsection{半導体素子}
+ダイオード, トランジスタ, OP-Amp等の半導体素子描画コマンド.
+\begin{itemize}
+	\item ダイオード
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\D(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-2)(5,2)
+				\grid*
+				\D(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+	\Item ツェナーダイオード
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\ZD(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-2)(5,2)
+				\grid*
+				\ZD(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+	\Item ショットキーバリアダイオード
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\SBD(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-2)(5,2)
+				\grid*
+				\SBD(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+	\Item 可変容量ダイオード
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\VCD(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-2)(5,2)
+				\grid*
+				\VCD(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+	\Item 発光ダイオード
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\LED(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-2)(5,3)
+				\grid*
+				\LED(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+	\Item フォトダイオード
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\PD(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[8pt](-1,-3)(5,2)
+				\grid*
+				\PD(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+\Item ダイオードブリッジ
+		\par
+		\begin{minipage}[t]{0.46\textwidth}
+			\begin{description}
+				\item[書式] \verb|\DBridge(#1,#2)[#3]|
+				\item[引数] \begin{tabular}[t]{cp{13zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか).
+				\end{tabular}
+			\end{description}
+		\end{minipage}
+		\begin{minipage}[t]{0.46\textwidth}
+			\textbf{出力}
+			\par
+			\centering
+			\begin{pscircuit}[6pt](-1,-5)(9,5)
+				\grid*
+				\DBridge(0,0)[r]
+				\cross(0,0)
+			\end{pscircuit}
+		\end{minipage}
+
+	\Item トランジスタ
+		\begin{description}
+			\item[書式] \verb/\TR(#1,#2)[#3][#4]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+				\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+				\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+				\texttt{[\#4]} & オプション. \texttt{r}と\texttt{l}, \texttt{n}と\texttt{p}はそれぞれ一方を必ず指定. \\
+				& \texttt{l}: B, C, Eの順に左回り. \texttt{r}: B, C, Eの順に右回り. \\
+				& \texttt{n}: NPN型. \texttt{p}: PNP型.
+			\end{tabular}
+			\item[出力] 記号の左は\#4の値である.
+			\par\centering
+			\begin{tabular}[t]{lclclclc}
+				[rn] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-4)(6,4)
+					\grid*
+					\TR(0,0)[r][rn]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 &
+				[ln] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-4)(6,4)
+					\grid*
+					\TR(0,0)[r][ln]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 &
+				[rp] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-4)(6,4)
+					\grid*
+					\TR(0,0)[r][rp]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 &
+				[lp] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-4)(6,4)
+					\grid*
+					\TR(0,0)[r][lp]
+					\cross(0,0)
+					\end{pscircuit}}
+				\lower0.5\ht0\box0
+			\end{tabular}
+		\end{description}
+
+	\Item FET(電界効果トランジスタ)
+		\begin{description}
+			\item[書式] \verb/\FET(#1,#2)[#3][#4]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+				\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+				\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+				\texttt{[\#4]} & オプション. \texttt{n}と\texttt{p}はそれぞれ一方を, \texttt{l}, \texttt{r}, \texttt{c}は何れか1つを指定. \\
+				& \texttt{n}: Nチャネル.  \texttt{p}: Pチャネル. \\
+				& \texttt{l}: G, D, Sの順に左回り. \texttt{r}: G, D, Sの順に右回り. \texttt{c}: GがD, Sと等距離の配置. \\
+			\end{tabular}
+			\item[出力] 記号の左は\#4の値である.
+			\par\centering
+			\begin{tabular}[t]{lclclc}
+				[rn] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-3)(6,5)
+					\grid*
+					\FET(0,0)[r][rn]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 &
+				[ln] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-5)(6,3)
+					\grid*
+					\FET(0,0)[r][ln]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 &
+				[cn] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-4)(6,4)
+					\grid*
+					\FET(0,0)[r][cn]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 \\[30pt]
+				[rp] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-3)(6,5)
+					\grid*
+					\FET(0,0)[r][rp]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 &
+				[lp] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-5)(6,3)
+					\grid*
+					\FET(0,0)[r][lp]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 &
+				[cp] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-4)(6,4)
+					\grid*
+					\FET(0,0)[r][cp]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0
+			\end{tabular}
+		\end{description}
+
+	\Item MOSFET(金属酸化物電界効果トランジスタ)
+		\begin{description}
+			\item[書式] \verb/\MOSFET(#1,#2)[#3][#4]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+				\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+				\texttt{[\#4]} & オプション. \texttt{r}と\texttt{l}, \texttt{n}と\texttt{p}, \texttt{e}と\texttt{d}はそれぞれ一方を必ず指定. \\
+				& \texttt{r}: G, D, Sの順に右回り. \texttt{l}: G, D, Sの順に左回り. \\
+				& \texttt{n}: Nチャネル.  \texttt{p}: Pチャネル. \\
+				& \texttt{e}: エンハンスメント型.  \texttt{d}: デプレッション型.
+			\end{tabular}
+			\item[出力] 記号の左は\#4の値である.
+			\par\centering
+			\begin{tabular}[t]{lclclclc}
+				[rne] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-2)(6,4)
+					\grid*
+					\MOSFET(0,0)[r][rne]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 &
+				[lne] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-4)(6,2)
+					\grid*
+					\MOSFET(0,0)[r][lne]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 &
+				[rpe] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-2)(6,4)
+					\grid*
+					\MOSFET(0,0)[r][rpe]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 &
+				[lpe] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-4)(6,2)
+					\grid*
+					\MOSFET(0,0)[r][lpe]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 \\[30pt]
+				%
+				[rnd] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-2)(6,4)
+					\grid*
+					\MOSFET(0,0)[r][rnd]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 &
+				%
+				[lnd] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-4)(6,2)
+					\grid*
+					\MOSFET(0,0)[r][lnd]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 &
+				%
+				[rpd] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-2)(6,4)
+					\grid*
+					\MOSFET(0,0)[r][rpd]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 &
+				[lpd] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-4)(6,2)
+					\grid*
+					\MOSFET(0,0)[r][lpd]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0
+			\end{tabular}
+		\end{description}
+
+	\Item MOSFET簡易表記 (MOSトランジスタ, IC内の素子表記用)
+		\begin{description}
+			\item[書式] \verb/\MOSTR(#1,#2)[#3][#4]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+				\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+				\texttt{[\#4]} & オプション. \texttt{n}と\texttt{p}は一方を必ず指定. \\
+				& \texttt{n}: Nチャネル. \texttt{p}: Pチャネル.
+			\end{tabular}
+			\item[出力] 記号の左は\#4の値である.
+			\par\centering
+			\begin{tabular}[t]{lclc}
+				[rn] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-3)(5,3)
+					\grid*
+					\MOSTR(0,0)[r][n]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0 &
+				[ln] &
+				\setbox0=\hbox{\begin{pscircuit}[6pt](-1,-3)(5,3)
+					\grid*
+					\MOSTR(0,0)[r][p]
+					\cross(0,0)
+				\end{pscircuit}}
+				\lower0.5\ht0\box0
+			\end{tabular}
+		\end{description}
+
+	\Item OP-Amp(演算増幅器)
+		\begin{description}
+			\item[書式] \verb/\OPAmp(#1,#2)[#3][#4]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+				\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+				\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+				\texttt{[\#4]} & オプション. \texttt{r}, \texttt{l}はそれぞれ一方を必ず指定. \texttt{v}は省略可.\\
+				& \texttt{r}: 出力端子から見て右側が非反転入力. \\
+				& \texttt{l}: 出力端子から見て左側が非反転入力. \\
+				& \texttt{v}: 電源の配線を描画.
+			\end{tabular}
+				\par
+				\medskip
+			\item[出力] \hfil
+				\begin{tabular}[t]{lclc}
+					\verb/\OPAmp(x,y)[r][rv]/ &
+					\setbox0=\hbox{\begin{pscircuit}[6pt](-9,-4)(1,4)
+						\grid*
+						\OPAmp(0,0)[r][rv]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 &
+					%
+					\verb/\OPAmp(x,y)[r][l]/ &
+					\setbox0=\hbox{\begin{pscircuit}[6pt](-9,-4)(1,4)
+						\grid*
+						\OPAmp(0,0)[r][l]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0
+				\end{tabular}
+		\end{description}
+
+	\Item トランスコンダクタンスアンプ
+		\begin{description}
+			\item[書式] \verb/\OTAmp(#1,#2)[#3][#4]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{[\#4]} & オプション. 以下を指定する. \texttt{r}, \texttt{l}はそれぞれ一方を必ず指定. \texttt{v}は省略可.\\
+					& \texttt{r}: 出力端子から見て右側が非反転入力. \\
+					& \texttt{l}: 出力端子から見て左側が非反転入力. \\
+					& \texttt{v}: 電源の配線を描画. \\
+					\texttt{[\#5]} & 基準電流端子の方向. 以下を指定する.\\
+					& \texttt{r}: 出力端子から見て右側に端子を出す. \\
+					& \texttt{l}: 出力端子から見て左側に端子を出す.
+				\end{tabular}
+				\par
+				\medskip
+			\item[出力] \hfil
+				\begin{tabular}[t]{lclc}
+					\verb/\OTAmp(x,y)[r][rv][r]/ &
+					\setbox0=\hbox{\begin{pscircuit}[6pt](-11,-4)(1,4)
+						\grid*
+						\OTAmp(0,0)[r][rv][r]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 &
+					%
+					\verb/\OTAmp(x,y)[r][l][l]/ &
+					\setbox0=\hbox{\begin{pscircuit}[6pt](-11,-4)(1,4)
+						\grid*
+						\OTAmp(0,0)[r][l][l]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0
+				\end{tabular}
+		\end{description}
+
+\end{itemize}
+
+\subsubsection{論理回路素子}
+AND, OR, NOT, XOR回路等の論理回路素子描画コマンド. 論理回路記号の寸法はMIL規格に完全準拠している. 因みにXORはMIL規格に存在しない.
+\par
+\begin{itemize}
+	\item AND回路(万能形)
+		\begin{description}
+			\item[書式] \verb/\AND(#1,#2)[#3]#4#5[#6]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{\#4} & 入力の論理. 出力端子から見て右側の端子から順に\texttt{p}, \texttt{n}を連ねる. \texttt{p}, \texttt{n}の数の合計が入力数となる.\\
+					& \texttt{n}: 負論理. 丸が付く. \texttt{p}: 正論理. \\
+					\texttt{\#5} & 出力の論理. 以下の何れかを指定する. \\
+					& \texttt{n}: 負論理. 丸が付く. \texttt{p}: 正論理. \\
+					\texttt{[\#6]} & 電源の配線. c, e, vの何れかを指定, または省略する. \\
+					& 省略: 描画なし. \\
+					& c: 出力端子からみて右側のみ描画. \\
+					& e: 出力端子からみて左側のみ描画. \\
+					& v: 両方描画.
+				\end{tabular}
+			\item[出力] \hfil
+				\begin{tabular}[t]{cccc}
+					\verb/\AND(x,y)[r]{pp}p/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\AND(0,0)[r]{pp}n
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 &
+					\verb/\AND(x,y)[r]{nnn}p[c]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\AND(0,0)[r]{nnn}p[c]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 \\[30pt]
+					\verb/\AND(x,y)[r]{ppnpp}n[e]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\AND(0,0)[r]{ppnpp}n[e]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 &
+					\verb/\AND(x,y)[r]{pnpn}n[v]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\AND(0,0)[r]{pnpn}n[v]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0
+				\end{tabular}
+		\end{description}
+	
+	\Item OR回路(万能形)
+		\begin{description}
+			\item[書式] \verb/\OR(#1,#2)[#3]#4#5[#6]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{\#4} & 入力の論理. 出力端子から見て右側の端子から順に\texttt{p}, \texttt{n}を連ねる. \texttt{p}, \texttt{n}の数の合計が入力数となる.\\
+					& \texttt{n}: 負論理. 丸が付く. \\
+					& \texttt{p}: 正論理. \\
+					\texttt{\#5} & 出力の論理. 以下の何れかを指定する. \\
+					& \texttt{n}: 負論理. 丸が付く. \\
+					& \texttt{p}: 正論理. \\
+					\texttt{[\#6]} & 電源の配線. c, e, vの何れかを指定, または省略する. \\
+					& 省略: 描画なし \\
+					& c: 出力端子からみて右側のみ描画 \\
+					& e: 出力端子からみて左側のみ描画 \\
+						& v: 両方描画
+				\end{tabular}
+			\item[出力] \hfil
+				\begin{tabular}[t]{cccc}
+					\verb/\OR(x,y)[r]{pp}p/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\OR(0,0)[r]{pp}p
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 &
+					\verb/\OR(x,y)[r]{pppp}n[c]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\OR(0,0)[r]{pppp}n[c]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 \\[30pt]
+					\verb/\OR(x,y)[r]{nnn}n[e]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\OR(0,0)[r]{nnn}n[e]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 &
+					\verb/\OR(x,y)[r]{ppnpnp}p[v]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\OR(0,0)[r]{ppnpnp}p[v]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0
+				\end{tabular}
+		\end{description}
+
+	\Item バッファ(万能形)
+		\begin{description}
+			\item[書式] \verb/\BUF(#1,#2)[#3]#4#5[#6]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{\#4} & 入力の論理. 以下の何れかを指定する.\\
+					& \texttt{n}: 負論理. 丸が付く. \texttt{p}: 正論理. \\
+					\texttt{\#5} & 出力の論理. 以下の何れかを指定する. \\
+					& \texttt{n}: 負論理. 丸が付く. \texttt{p}: 正論理. \\
+					\texttt{[\#6]} & 電源の配線. c, e, vの何れかを指定, または省略する. \\
+					& 省略: 描画なし. \\
+					& c: 出力端子からみて右側のみ描画. \\
+					& e: 出力端子からみて左側のみ描画. \\
+					& v: 両方描画
+				\end{tabular}
+			\item[出力] \hfil
+				\begin{tabular}[t]{cccc}
+					\verb/\BUF(x,y)[r]pp/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-5,-3)(1,3)
+						\grid*
+						\BUF(0,0)[r]pp
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 &
+					\verb/\BUF(x,y)[r]pn[c]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-5,-3)(1,3)
+						\grid*
+						\BUF(0,0)[r]pn[c]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 \\[30pt]
+					\verb/\BUF(x,y)[r]np[e]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-5,-2)(1,2)
+						\grid*
+						\BUF(0,0)[r]np[e]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 &
+					\verb/\BUF(x,y)[r]nn[v]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-5,-2)(1,2)
+						\grid*
+						\BUF(0,0)[r]nn[v]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0
+				\end{tabular}
+		\end{description}
+
+	\Item AND回路(簡易指定)
+		\begin{description}
+			\item[書式] \verb/\AND(#1,#2)[#3][#4][#5]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{[\#4]} & 入力数. 2以上である事.\\
+					\texttt{[\#5]} & 電源の配線. c, e, vの何れかを指定, または省略する. \\
+					& 省略: 描画なし \\
+					& c: 出力端子からみて右側のみ描画 \\
+					& e: 出力端子からみて左側のみ描画 \\
+					& v: 両方描画
+				\end{tabular}
+			\item[出力] \hfil
+				\begin{tabular}[t]{cccc}
+					\verb/\AND(x,y)[r][2]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\AND(0,0)[r][3]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 &
+					\verb/\AND(0,0)[r][5][v]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\AND(0,0)[r][5][v]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0
+				\end{tabular}
+			\end{description}
+
+	\Item OR回路(簡易指定)
+		\begin{description}
+			\item[書式] \verb/\OR(#1,#2)[#3][#4][#5]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{[\#4]} & 入力数. 2以上である事.\\
+					\texttt{[\#5]} & 電源の配線. c, e, vの何れかを指定, または省略する. \\
+					& 省略: 描画なし \\
+					& c: 出力端子からみて右側のみ描画 \\
+					& e: 出力端子からみて左側のみ描画 \\
+					& v: 両方描画
+				\end{tabular}
+			\item[出力] \hfil
+				\begin{tabular}[t]{cccc}
+					\verb/\OR(x,y)[r][2]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\OR(0,0)[r][2]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 &
+					\verb/\OR(0,0)[r][5][v]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\OR(0,0)[r][5][v]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0
+				\end{tabular}
+		\end{description}
+
+	\Item NOT回路
+		\begin{description}
+			\item[書式] \verb/\NOT(#1,#2)[#3][#4]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{[\#4]} & 電源の配線. c, e, vの何れかを指定, または省略する. \\
+					& 省略: 描画なし \\
+					& c: 出力端子からみて右側のみ描画 \\
+					& e: 出力端子からみて左側のみ描画 \\
+					& v: 両方描画
+				\end{tabular}
+			\item[出力] \hfil
+				\begin{tabular}[t]{cccc}
+					\verb/\NOT(x,y)[r]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-5,-3)(1,3)
+						\grid*
+						\NOT(0,0)[r]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 &
+					\verb/\NOT(0,0)[r][v]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-5,-3)(1,3)
+						\grid*
+						\NOT(0,0)[r][v]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0
+				\end{tabular}
+		\end{description}
+
+	\Item NAND回路
+		\begin{description}
+			\item[書式] \verb/\NAND(#1,#2)[#3][#4][#5]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{[\#4]} & 入力数. 2以上である事.\\
+					\texttt{[\#5]} & 電源の配線. c, e, vの何れかを指定, または省略する. \\
+					& 省略: 描画なし \\
+					& c: 出力端子からみて右側のみ描画 \\
+					& e: 出力端子からみて左側のみ描画 \\
+					& v: 両方描画
+				\end{tabular}
+			\item[出力] \hfil
+				\begin{tabular}[t]{cccc}
+					\verb/\NAND(x,y)[r][2]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\NAND(0,0)[r][2]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 &
+					\verb/\NAND(0,0)[r][5][v]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\NAND(0,0)[r][5][v]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0
+				\end{tabular}
+		\end{description}
+
+	\Item NOR回路
+		\begin{description}
+			\item[書式] \verb/\NOR(#1,#2)[#3][#4][#5]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{[\#4]} & 入力数. 2以上である事.\\
+					\texttt{[\#5]} & 電源の配線. c, e, vの何れかを指定, または省略する. \\
+					& 省略: 描画なし \\
+					& c: 出力端子からみて右側のみ描画 \\
+					& e: 出力端子からみて左側のみ描画 \\
+					& v: 両方描画
+				\end{tabular}
+			\item[出力] \hfil
+				\begin{tabular}[t]{cccc}
+					\verb/\NOR(x,y)[r][2]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\NOR(0,0)[r][2]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 &
+					\verb/\NOR(0,0)[r][5][v]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\NOR(0,0)[r][5][v]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0
+				\end{tabular}
+		\end{description}
+
+	\Item XOR(ExOR, EOR)回路
+		\begin{description}
+			\item[書式] \verb/\XOR(#1,#2)[#3][#4][#5]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{[\#4]} & 入力数. 2以上である事.\\
+					\texttt{[\#5]} & 電源の配線. c, e, vの何れかを指定, または省略する. \\
+					& 省略: 描画なし \\
+					& c: 出力端子からみて右側のみ描画 \\
+					& e: 出力端子からみて左側のみ描画 \\
+					& v: 両方描画
+				\end{tabular}
+			\item[出力] \hfil
+				\begin{tabular}[t]{cccc}
+					\verb/\XOR(x,y)[r][2]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\XOR(0,0)[r][2]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 &
+					\verb/\XOR(0,0)[r][5][v]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\XOR(0,0)[r][5][v]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0
+				\end{tabular}
+		\end{description}
+
+	\Item XNOR回路
+		\begin{description}
+			\item[書式] \verb/\XNOR(#1,#2)[#3][#4][#5]/
+			\item[引数] \begin{tabular}[t]{cp{39zw}}
+					\texttt{(\#1,\#2)} & 始点座標$(x,y)$. \\
+					\texttt{[\#3]} & 方向(\texttt{rltb}の何れか). \\
+					\texttt{[\#4]} & 入力数. 2以上である事.\\
+					\texttt{[\#5]} & 電源の配線. c, e, vの何れかを指定, または省略する. \\
+					& 省略: 描画なし \\
+					& c: 出力端子からみて右側のみ描画 \\
+					& e: 出力端子からみて左側のみ描画 \\
+					& v: 両方描画
+				\end{tabular}
+			\item[出力] \hfil
+				\begin{tabular}[t]{cccc}
+					\verb/\XNOR(x,y)[r][2]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\XNOR(0,0)[r][2]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0 &
+					\verb/\XNOR(0,0)[r][5][v]/ &
+					\setbox0=\hbox{\begin{pscircuit}[8pt](-7,-3)(1,3)
+						\grid*
+						\XNOR(0,0)[r][5][v]
+						\cross(0,0)
+					\end{pscircuit}}
+					\lower0.5\ht0\box0
+				\end{tabular}
+		\end{description}
+\end{itemize}
+
+\Subsection{IC描画コマンド}
+ICの輪廓となる矩形と, ピンを描画するコマンドを示す. ICの描画はまず矩形を描き, そこにピンを好きなだけ描画していくという方式をとる事で自由度を向上している.
+
+\subsubsection{IC輪廓}
+\begin{description}
+\item[書式] \verb/\IC(#1,#2)(#3,#4)/
+\item[引数] \begin{tabular}[t]{cp{39zw}}
+\texttt{(\#1,\#2)} & 左下座標$(x,y)$. \\
+\texttt{\#3,\#4)} & 大きさ(高さ, 幅). \\
+\end{tabular}
+\item[機能] ICの輪廓となる矩形を描画する.
+\end{description}
+
+\subsubsection{ピン}
+\begin{itemize}
+\item ピン描画
+\begin{description}
+\item[書式] \verb/\pin(#1,#2)[#3]#4#5[#6]/
+\item[引数] \begin{tabular}[t]{cp{26zw}}
+\texttt{(\#1,\#2)} & ピンを出す座標$(x,y)$. \\
+\texttt{[\#3]} & ピンを出す方向(\texttt{rltb}の何れか). \\
+\texttt{\#4} & ピン番号. (省略する時は中を空にした\verb/{}/.) \\
+\texttt{\#5} & ピン名称. \\
+\texttt{[\#6]} & オプション. 以下を指定する. 省略可. \\
+& \texttt{n}: 負論理. (ピンに丸がつく.)  \texttt{e}: エッジトリガ. (ピンに三角形が付く.)
+\end{tabular}
+\item[機能] ICのピンを描画する.
+\end{description}
+
+\Item ピン番号フォントサイズ変更
+\begin{description}
+\item[書式] \verb/\pinnumsize[#1], \pinnumsize#1/
+\item[引数] \begin{tabular}[t]{cp{39zw}}
+\texttt{\#1} & ピン番号フォントサイズ. \\
+& \texttt{[]}による指定時は単位付きの正実数, 他方の場合は相対サイズの指定.
+\end{tabular}
+\item[機能] ピン番号のフォントサイズを変更する. 初期値は\verb/\scriptsize/である. 機能は\verb|\strsize|に同じである.
+\end{description}
+
+\Item ピン名称フォントサイズ変更
+\begin{description}
+\item[書式] \verb/\pinamesize[#1], \pinamesize#1/
+\item[引数] \begin{tabular}[t]{cp{39zw}}
+\texttt{\#1} & ピン番号フォントサイズ. \\
+& \texttt{[]}による指定時は単位付きの正実数, 他方の場合は相対サイズの指定.
+\end{tabular}
+\item[機能] ピン番号のフォントサイズを変更する. 初期値は\verb/\scriptsize/である. 機能は\verb|\strsize|に同じである.
+\end{description}
+
+\Item ピン番号位置調整
+\begin{description}
+\item[書式] \verb/\pinnumoffset(#1,#2)/
+\item[引数] \begin{tabular}[t]{cp{39zw}}
+\texttt{(\#1,\#2)} & ピン番号表示位置の, 初期値からの変位ベクトル\unit[ul].
+\end{tabular}
+\item[機能] ピン番号表示位置を初期値から変位ベクトル分移動する. この命令以降のすべてのピンに影響する.
+\end{description}
+
+\Item ピン名称位置調整
+\begin{description}
+\item[書式] \verb/\pinnameoffset(#1,#2)/
+\item[引数] \begin{tabular}[t]{cp{39zw}}
+\texttt{(\#1,\#2)} & ピン名称表示位置の, 初期値からの変位ベクトル\unit[ul].
+\end{tabular}
+\item[機能] ピン名称表示位置を初期値から変位ベクトル分移動する. この命令以降のすべてのピンに影響する.
+\end{description}
+\end{itemize}
+
+\subsubsection{IC描画例}
+IC描画コマンドの使用例を示す.
+
+\begin{enumerate}
+\item JK-FF.
+
+\medskip
+\begin{minipage}{0.46\textwidth}
+\small
+\setlength{\baselineskip}{12pt}
+\begin{verbatim}
+\begin{pscircuit}[12pt](0,0)(6,6)
+\IC(1,1)(5,5)
+\pin(1,2)[l]{}{K}
+\pin(1,3)[l]{}{CK}[en]
+\pin(1,4)[l]{}{J}
+\pin(5,4)[r]{}{Q}
+\pin(5,2)[r]{}{$\overline{\mathrm{Q}}$}[n]
+\pin(3,1)[b]{}{$\overline{\mathrm{R}}$}[n]
+\pin(3,5)[t]{}{$\overline{\mathrm{PR}}$}[n]
+\end{pscircuit}
+\end{verbatim}
+\end{minipage}
+\begin{minipage}{0.46\textwidth}
+\centering
+\begin{pscircuit}[12pt](0,0)(6,6)
+\grid*
+\IC(1,1)(5,5)
+\pin(1,2)[l]{}{K}
+\pin(1,3)[l]{}{CK}[en]
+\pin(1,4)[l]{}{J}
+\pin(5,4)[r]{}{Q}
+\pin(5,2)[r]{}{$\overline{\mathrm{Q}}$}[n]
+\pin(3,1)[b]{}{$\overline{\mathrm{R}}$}[n]
+\pin(3,5)[t]{}{$\overline{\mathrm{PR}}$}[n]
+\end{pscircuit}
+\end{minipage}
+
+\bigskip
+\item PIC16F84A的.
+
+\medskip
+\begin{minipage}{0.46\textwidth}
+\small
+\setlength{\baselineskip}{12pt}
+\begin{verbatim}
+\begin{pscircuit}[12pt](0,0)(7,12)
+\IC(1,1)(6,11)
+\pin(1,2)[l]{9}{RB3}
+\pin(1,3)[l]{8}{RB2}
+\pin(1,4)[l]{7}{RB1}
+\pin(1,5)[l]{6}{RB0}
+\pin(1,6)[l]{5}{$\mathrm{V}_\mathrm{DD}$}
+\pin(1,7)[l]{4}{$\overline{\mathrm{MCLR}}$}
+\pin(1,8)[l]{3}{RA4}
+\pin(1,9)[l]{2}{RA3}
+\pin(1,10)[l]{1}{RA2}
+\pin(6,2)[r]{10}{RB4}
+\pin(6,3)[r]{11}{RB5}
+\pin(6,4)[r]{12}{RB6}
+\pin(6,5)[r]{13}{RB7}
+\pin(6,6)[r]{14}{VSS}
+\pin(6,7)[r]{15}{OSC0}
+\pin(6,8)[r]{16}{OSC1}
+\pin(6,9)[r]{17}{RA0}
+\pin(6,10)[r]{18}{RA1}
+\end{pscircuit}
+\end{verbatim}
+\end{minipage}
+\begin{minipage}{0.46\textwidth}
+\centering
+\begin{pscircuit}[12pt](0,0)(7,12)
+\grid*
+\IC(1,1)(6,11)
+\pin(1,2)[l]{9}{RB3}
+\pin(1,3)[l]{8}{RB2}
+\pin(1,4)[l]{7}{RB1}
+\pin(1,5)[l]{6}{RB0}
+\pin(1,6)[l]{5}{$\mathrm{V}_\mathrm{DD}$}
+\pin(1,7)[l]{4}{$\overline{\mathrm{MCLR}}$}
+\pin(1,8)[l]{3}{RA4}
+\pin(1,9)[l]{2}{RA3}
+\pin(1,10)[l]{1}{RA2}
+\pin(6,2)[r]{10}{RB4}
+\pin(6,3)[r]{11}{RB5}
+\pin(6,4)[r]{12}{RB6}
+\pin(6,5)[r]{13}{RB7}
+\pin(6,6)[r]{14}{$\mathrm{V}_\mathrm{SS}$}
+\pin(6,7)[r]{15}{OSC0}
+\pin(6,8)[r]{16}{OSC1}
+\pin(6,9)[r]{17}{RA0}
+\pin(6,10)[r]{18}{RA1}
+\end{pscircuit}
+\end{minipage}
+\end{enumerate}
+
+\Subsection{その他}
+回路図描画においてあると便利と思われるマクロを以下に示す.
+
+\subsubsection{方眼描画}
+\begin{description}
+\item[書式] \verb/\grid/
+\item[引数] なし.
+\item[機能] 方眼を描画する. $x$, $y$座標も表示される. 座標数字は5の倍数のみ表示される 罫線の表示は1\unit[ul]毎であり, 原点を通る線は赤色, $x$切片, $y$切片が5の倍数の線は濃い灰色で表示される.
+\item[例]\mbox{}
+
+\medskip
+\begin{minipage}{0.46\textwidth}
+\small
+\setlength{\baselineskip}{12pt}
+\begin{verbatim}
+\begin{pscircuit}[8pt](0,0)(26,11)
+\grid
+\strsize{\normalsize}
+\BATT(3,6)[b]
+\SW(5,7)[r]
+\R(10,7)[r]
+\L(15,7)[r]
+\C(20,7)[r]
+\wire(3,6)(3,7)(5,7)
+\wire(9,7)(10,7)
+\wire(14,7)(15,7)
+\wire(19,7)(20,7)
+\wire(3,2)(3,1)(25,1)(25,7)(24,7)
+\putstr(0,4)[l]{$E$}
+\putstr(7,9)[b]{$S$}
+\putstr(12,9){$R$}
+\putstr(17,9){$L$}
+\putstr(22,9){$C$}
+\end{pscircuit}
+\end{verbatim}
+\end{minipage}
+\begin{minipage}{0.46\textwidth}
+\centering
+\begin{pscircuit}[8pt](0,0)(26,11)
+\grid
+\strsize{\normalsize}
+\BATT(3,6)[b]
+\SW(5,7)[r]
+\R(10,7)[r]
+\L(15,7)[r]
+\C(20,7)[r]
+\wire(3,6)(3,7)(5,7)
+\wire(9,7)(10,7)
+\wire(14,7)(15,7)
+\wire(19,7)(20,7)
+\wire(3,2)(3,1)(25,1)(25,7)(24,7)
+\putstr(0,4)[l]{$E$}
+\putstr(7,9)[b]{$S$}
+\putstr(12,9){$R$}
+\putstr(17,9){$L$}
+\putstr(22,9){$C$}
+\end{pscircuit}
+\end{minipage}
+\end{description}
+
+\subsubsection{座標移動}
+描画の原点を移動する.
+原点の移動はこれらのコマンド以降に書かれたコマンドに対し有効である.
+常に初期の原点からの移動を指定する絶対指定と, 現在の原点からの移動を指定する相対指定がある.
+\begin{description}
+	\item[書式] \verb/\offset(#1,#2)/
+	\item[引数] \begin{tabular}[t]{cp{39zw}}
+			\texttt{\#1} & $x$軸方向移動量[ul] (初期原点からの絶対量). \\
+			\texttt{\#2} & $y$軸方向移動量[ul] (初期原点からの絶対量). \\
+		\end{tabular}
+	\item[機能] 描画の原点を絶対指定で移動する.
+\end{description}
+
+\begin{description}
+	\item[書式] \verb/\offset*(#1,#2)/
+	\item[引数] \begin{tabular}[t]{cp{39zw}}
+			\texttt{\#1} & $x$軸方向移動量[ul] (現在の原点からの相対量). \\
+			\texttt{\#2} & $y$軸方向移動量[ul] (現在の原点からの相対量). \\
+		\end{tabular}
+	\item[機能] 描画の原点を相対指定で移動する.
+\end{description}
+
+\subsubsection{部品番号}
+部品番号を自動生成, 描画する.
+部品番号を生成する\verb|\newpartnumber|コマンド, 部品番号を指定する\verb|setpartnumber|コマンドと部品番号を描画する\verb|\partnum|コマンドからなる.
+
+\begin{description}
+	\item[書式] \verb/\newpartnumber#1#2/
+	\item[引数] \begin{tabular}[t]{cp{39zw}}
+			\texttt{\#1} & 部品番号の接頭辞(R, Cなど). \\
+			\texttt{\#2} & 部品番号の初期値. \\
+		\end{tabular}
+	\item[機能] 新たな部品番号カウンタを生成する.
+\end{description}
+
+\begin{description}
+	\item[書式] \verb/\setpartnumber#1#2/
+	\item[引数] \begin{tabular}[t]{cp{39zw}}
+			\texttt{\#1} & \verb|\newpartnumber|で設定した部品番号の接頭辞. \\
+			\texttt{\#2} & 部品番号の値. \\
+		\end{tabular}
+	\item[機能] 部品番号カウンタの値を指定する.
+\end{description}
+
+\begin{description}
+	\item[書式] \verb/\partnum#1#2(#3,#4)[#5](#6,#7)/
+	\item[引数] \begin{tabular}[t]{cp{39zw}}
+			\texttt{\#1} & \verb|\newpartnumber|で設定した部品番号の接頭辞. \\
+			\texttt{\#2} & 部品番号に加えて描画する文字列(素子値など). \\
+			\texttt{(\#3,\#4)} & 描画位置$(x,y)$. \\
+			\texttt{[\#5]} & 方向.(\texttt{rltbc}の何れか. 複数指定, 省略可. 省略した場合は\texttt{c}と同値) \\
+			\texttt{(\#6,\#7)} & 描画位置からの微調整ベクトル.(省略可) \\
+		\end{tabular}
+	\item[機能] 部品番号を描画する. 描画の直前に部品番号カウンタをインクリメントする. \verb|\partnum*|とするとインクリメントしない.
+\end{description}
+
+\noindent\textgt{例}
+\par
+\medskip
+\begin{minipage}{0.48\textwidth}
+	\renewcommand{\baselinestretch}{0.9}
+	\begin{verbatim}
+	\begin{pscircuit}[8pt](-1,-1)(5,11)
+		\grid
+		\newpartnumber{R}{0}
+		\R(0,0)[r]
+		\partnum{R}{10k$\Omega$}(2,1)[b](0,0.5)
+		\R(0,4)[r]
+		\partnum{R}{}(2,5)[b]
+		\newpartnumber{C}{1}
+		\setpartnumber{C}{5}
+		\C(0,8)[r]
+		\partnum*{C}{0.1$\mu$F}(2,9.5)[b]
+	\end{pscircuit}
+	\end{verbatim}
+\end{minipage}
+\begin{minipage}{0.48\textwidth}
+	\centering
+	\begin{pscircuit}[8pt](-1,-1)(5,11)
+		\grid
+		\newpartnumber{R}{0}
+		\R(0,0)[r]
+		\partnum{R}{10k$\Omega$}(2,1)[b](0,0.5)
+		\R(0,4)[r]
+		\partnum{R}{}(2,5)[b]
+		\newpartnumber{C}{1}
+		\setpartnumber{C}{5}
+		\C(0,8)[r]
+		\partnum*{C}{0.1$\mu$F}(2,9.5)[b]
+	\end{pscircuit}
+\end{minipage}
+
+\Section{使用例}
+\texttt{pscircuit.sty}を使用して実際に回路図を描画した例をソースコードと共に示す.
+\begin{enumerate}
+\item RLC直列回路. 定数係数2階線型常微分方程式の問題に使えそうな回路図.
+
+\medskip
+\begin{minipage}{0.46\textwidth}
+\small
+\setlength{\baselineskip}{12pt}
+\begin{verbatim}
+\begin{pscircuit}[8pt](0,0)(26,11)
+\grid
+\strsize{\normalsize}
+\BATT(3,6)[b]
+\SW(5,7)[r]
+\R(10,7)[r]
+\L(15,7)[r]
+\C(20,7)[r]
+\wire(3,6)(3,7)(5,7)
+\wire(9,7)(10,7)
+\wire(14,7)(15,7)
+\wire(19,7)(20,7)
+\wire(3,2)(3,1)(25,1)(25,7)(24,7)
+\putstr(0,4)[l]{$E$}
+\putstr(7,9)[b]{$S$}
+\putstr(12,9){$R$}
+\putstr(17,9){$L$}
+\putstr(22,9){$C$}
+\end{pscircuit}
+\end{verbatim}
+\end{minipage}
+\begin{minipage}{0.46\textwidth}
+\centering
+\begin{pscircuit}[8pt](0,0)(26,11)
+\grid
+\strsize{\normalsize}
+\BATT(3,6)[b]
+\SW(5,7)[r]
+\R(10,7)[r]
+\L(15,7)[r]
+\C(20,7)[r]
+\wire(3,6)(3,7)(5,7)
+\wire(9,7)(10,7)
+\wire(14,7)(15,7)
+\wire(19,7)(20,7)
+\wire(3,2)(3,1)(25,1)(25,7)(24,7)
+\putstr(0,4)[l]{$E$}
+\putstr(7,9)[b]{$S$}
+\putstr(12,9){$R$}
+\putstr(17,9){$L$}
+\putstr(22,9){$C$}
+\end{pscircuit}
+\end{minipage}
+
+\medskip
+\item ディジタル回路. 1bit全加算器の回路図.
+
+\medskip
+\begin{minipage}{0.46\textwidth}
+\small
+\setlength{\baselineskip}{12pt}
+\begin{verbatim}
+\begin{pscircuit}[7pt](0,0)(28,17)
+\grid
+\NAND(12,13)[r][2]
+\XOR(12,9)[r][2]
+\NAND(19,8)[r][2]
+\OR(25,12)[r]{nn}p
+\XOR(25,4)[r][2]
+\wire(2,8)(6,8)
+\wire(2,14)(6,14)
+\wire(6,12)(4,12)(4,8)
+\wire(6,10)(5,10)(5,14)
+\joint(4,8)
+\joint(5,14)
+\wire(12,9)(13,9)(13,5)(19,5)
+\joint(13,9)
+\wire(2,2)(17,2)(17,3)(19,3)
+\wire(13,7)(12,7)(12,2)
+\joint(12,2)
+\wire(19,8)(19,11)
+\wire(12,13)(19,13)
+\wire(25,12)(26,12)
+\wire(25,4)(26,4)
+\term(2,2)
+\putstr(2,3)[b]{$\mathrm{C_{in}}$}
+\term(2,8)
+\putstr(2,9)[b]{A}
+\term(2,14)
+\putstr(2,15)[b]{B}
+\term(26,4)
+\putstr(26,5)[b]{Y}
+\term(26,12)
+\putstr(26,13)[b]{$\mathrm{C_{out}}$}
+\end{pscircuit}
+\end{verbatim}
+\end{minipage}
+\begin{minipage}{0.46\textwidth}
+\centering
+\begin{pscircuit}[7pt](0,0)(28,17)
+\grid
+\NAND(12,13)[r][2]
+\XOR(12,9)[r][2]
+\NAND(19,8)[r][2]
+\OR(25,12)[r]{nn}p
+\XOR(25,4)[r][2]
+\wire(2,8)(6,8)
+\wire(2,14)(6,14)
+\wire(6,12)(4,12)(4,8)
+\wire(6,10)(5,10)(5,14)
+\joint(4,8)
+\joint(5,14)
+\wire(12,9)(13,9)(13,5)(19,5)
+\joint(13,9)
+\wire(2,2)(17,2)(17,3)(19,3)
+\wire(13,7)(12,7)(12,2)
+\joint(12,2)
+\wire(19,8)(19,11)
+\wire(12,13)(19,13)
+\wire(25,12)(26,12)
+\wire(25,4)(26,4)
+\term(2,2)
+\putstr(2,3)[b]{$\mathrm{C_{in}}$}
+\term(2,8)
+\putstr(2,9)[b]{A}
+\term(2,14)
+\putstr(2,15)[b]{B}
+\term(26,4)
+\putstr(26,5)[b]{Y}
+\term(26,12)
+\putstr(26,13)[b]{$\mathrm{C_{out}}$}
+\end{pscircuit}
+\end{minipage}
+
+\medskip
+\item アナログ電子回路. トランジスタ自己バイアス, 電流帰還バイアスの2段増幅回路. 回路規模が大きくなるとコード量は格段に増える.
+\begin{multicols}{2}
+\small
+\setlength{\baselineskip}{12pt}
+\begin{verbatim}
+\begin{pscircuit}[7pt](0,-1)(37,24)
+\grid
+\TR(10,11)[r][rn]
+\R(13,15)[l]
+\C(3,11)[r]
+\R(14,17)[t]
+\C(16,14)[r]
+\TR(23,11)[r][rn]
+\R(21,7)[b]
+\R(21,17)[t]
+\R(27,7)[b]
+\R(27,17)[t]
+\C(29,14)[r]
+\GND(14,2)s
+\GND(21,2)s
+\GND(27,2)s
+\wire(2,11)(3,11)
+\term(2,11)
+\wire(7,11)(10,11)
+\wire(14,8)(14,2)
+\wire(14,14)(14,17)
+\wire(13,15)(14,15)
+\joint(14,15)
+\wire(9,15)(8,15)(8,11)
+\joint(8,11)
+\joint(14,14)
+\wire(14,14)(16,14)
+\wire(20,14)(21,14)
+\joint(21,14)
+\wire(21,7)(21,17)
+\joint(21,11)
+\wire(21,11)(23,11)
+\wire(21,2)(21,3)
+\wire(27,2)(27,3)
+\wire(27,7)(27,8)
+\wire(27,14)(29,14)
+\wire(27,14)(27,17)
+\joint(27,14)
+\wire(33,14)(35,14)
+\term(35,14)
+\Vcc(14,21)
+\Vcc(21,21)
+\Vcc(27,21)
+\putstr(2,12)[b]{$v_{\mathit{in}}$}
+\putstr(35,15)[b]{$v_{\mathit{out}}$}
+\putstr(11,16)[b]{$\mathrm{R_{B1}}$}
+\putstr(13,19)[r]{$\mathrm{R_{C1}}$}
+\putstr(20,19)[r]{$\mathrm{R_{B2}}$}
+\putstr(20,5)[r]{$\mathrm{R_{B3}}$}
+\putstr(26,19)[r]{$\mathrm{R_{C2}}$}
+\putstr(26,5)[r]{$\mathrm{R_{E1}}$}
+\putstr(5,13){$\mathrm{C_1}$}
+\putstr(18,16){$\mathrm{C_2}$}
+\putstr(31,16){$\mathrm{C_3}$}
+\putstr(16,11)[lt]{$\mathrm{TR_1}$}
+\putstr(29,11)[lt]{$\mathrm{TR_2}$}
+\end{pscircuit}
+\end{verbatim}
+\end{multicols}
+\begin{center}
+\begin{pscircuit}[7pt](0,-1)(37,24)
+\grid
+\TR(10,11)[r][rn]
+\R(13,15)[l]
+\C(3,11)[r]
+\R(14,17)[t]
+\C(16,14)[r]
+\TR(23,11)[r][rn]
+\R(21,7)[b]
+\R(21,17)[t]
+\R(27,7)[b]
+\R(27,17)[t]
+\C(29,14)[r]
+\GND(14,2)s
+\GND(21,2)s
+\GND(27,2)s
+\wire(2,11)(3,11)
+\term(2,11)
+\wire(7,11)(10,11)
+\wire(14,8)(14,2)
+\wire(14,14)(14,17)
+\wire(13,15)(14,15)
+\joint(14,15)
+\wire(9,15)(8,15)(8,11)
+\joint(8,11)
+\joint(14,14)
+\wire(14,14)(16,14)
+\wire(20,14)(21,14)
+\joint(21,14)
+\wire(21,7)(21,17)
+\joint(21,11)
+\wire(21,11)(23,11)
+\wire(21,2)(21,3)
+\wire(27,2)(27,3)
+\wire(27,7)(27,8)
+\wire(27,14)(29,14)
+\wire(27,14)(27,17)
+\joint(27,14)
+\wire(33,14)(35,14)
+\term(35,14)
+\Vcc(14,21)
+\Vcc(21,21)
+\Vcc(27,21)
+\putstr(2,12)[b]{$v_{\mathit{in}}$}
+\putstr(35,15)[b]{$v_{\mathit{out}}$}
+\putstr(11,16)[b]{$\mathrm{R_{B1}}$}
+\putstr(13,19)[r]{$\mathrm{R_{C1}}$}
+\putstr(20,19)[r]{$\mathrm{R_{B2}}$}
+\putstr(20,5)[r]{$\mathrm{R_{B3}}$}
+\putstr(26,19)[r]{$\mathrm{R_{C2}}$}
+\putstr(26,5)[r]{$\mathrm{R_{E1}}$}
+\putstr(5,13){$\mathrm{C_1}$}
+\putstr(18,16){$\mathrm{C_2}$}
+\putstr(31,16){$\mathrm{C_3}$}
+\putstr(16,11)[lt]{$\mathrm{TR_1}$}
+\putstr(29,11)[lt]{$\mathrm{TR_2}$}
+\end{pscircuit}
+\end{center}
+\end{enumerate}
+\end{document}

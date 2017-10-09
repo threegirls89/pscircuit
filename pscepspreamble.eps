@@ -1,0 +1,109 @@
+%!PS-Adobe-3.0 EPSF-3.0
+%%BoundingBox: 0 0 128 128
+
+% All PostScript Commands to draw circuit elements in pscircuit.sty
+% and new Postscript command testing environment
+
+0.05 setlinewidth
+
+% begininput
+/wire {
+	4 dict begin
+	/y2 exch def
+	/x2 exch def
+	/y1 exch def
+	/x1 exch def
+	newpath
+	x1 y1 moveto
+	x2 y2 lineto
+	1 setlinecap
+	stroke
+	0 setlinecap
+	end
+} def
+
+/arrowhead {
+	12 dict begin
+	/l exch def
+	/theta exch def
+	/dy exch def
+	/dx exch def
+	/y exch def
+	/x exch def
+	/dl dx dx mul dy dy mul add sqrt def
+	/phi 180 theta sub def
+	/x1 dx phi cos mul dy phi sin mul sub l mul dl div x add def
+	/y1 dx phi sin mul dy phi cos mul add l mul dl div y add def
+	/phi 180 theta add def
+	/x2 dx phi cos mul dy phi sin mul sub l mul dl div x add def
+	/y2 dx phi sin mul dy phi cos mul add l mul dl div y add def
+	newpath
+	x1 y1 moveto
+	x y lineto
+	x2 y2 lineto
+	closepath
+	fill
+	end
+} def
+
+/arrow {
+	9 dict begin
+	/type exch def
+	/l exch def
+	/theta exch def
+	/y2 exch def
+	/x2 exch def
+	/y1 exch def
+	/x1 exch def
+	/norm x2 x1 sub x2 x1 sub mul y2 y1 sub y2 y1 sub mul add sqrt def
+	/h l theta cos div def
+	/x01 x1 def
+	/x02 x2 def
+	/y01 y1 def
+	/y02 y2 def
+	type 2 mod 1 eq {
+		x2 y2 x2 x1 sub y2 y1 sub theta h arrowhead
+		/x02 x2 x2 x1 sub norm div l mul sub def
+		/y02 y2 y2 y1 sub norm div l mul sub def
+	} if
+	type 2 idiv 1 eq {
+		x1 y1 x1 x2 sub y1 y2 sub theta h arrowhead
+		/x01 x1 x1 x2 sub norm div l mul sub def
+		/y01 y1 y1 y2 sub norm div l mul sub def
+	} if
+	newpath
+	x01 y01 moveto
+	x02 y02 lineto
+	stroke
+	end
+} def
+
+/rectangle {
+	5 dict begin
+	/h exch def
+	/w exch def
+	/y exch def
+	/x exch def
+	/ch exch def
+	ch (c) eq {
+		/x x w 0.5 mul sub def
+		/y y h 0.5 mul sub def
+	}{
+		ch (p) eq {
+			/w w x sub def
+			/h h y sub def
+		} if
+	} ifelse
+	newpath
+	x y moveto
+	w 0 rlineto
+	0 h rlineto
+	w -1 mul 0 rlineto
+	closepath
+	stroke
+	end
+} def
+
+% endinput
+
+%%EOF

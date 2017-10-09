@@ -1,0 +1,551 @@
+% pscelements.sty 
+%
+% copyright(c) threegirls89 2013-2016.
+%
+% 2016/08/22 作成.
+% pscircuit.styから回路素子描画コマンドを分離したもの.
+% 回路素子描画コマンドは数が多くスタイルファイルの保守性が悪くなるため & 将来的に使用部品毎のスタイルファイルを並べる構成にするため(部品ライブラリ的)分離.
+%
+\NeedsTeXFormat{LaTeX2e}%
+\ProvidesPackage{pscelements}[2017/05/25 ver.1.0.1 threegirls89]%
+\def\j@urnalname{pscelements}
+\def\versi@ndate{May. 25, 2017}
+\def\versi@nno{ver1.0.1}
+\def\copyrighth@lder{threegirls89}
+\typeout{Option Style `\j@urnalname' (\versi@nno) <\versi@ndate>\space [\copyrighth@lder]}
+%
+% pscircuit ver.0.1.8以前と互換性がなくなった素子
+% \VR(#1,#2)[#3][#4] -> \VR#1(#2,#3)[#4][#5]
+% \GNDsignal, \GNDhousing, \GNDearth -> \GND(#1,#2)#3
+% \FET(#1,#2)[#3][#4] -> \FET(#1,#2)[#3][c#4]
+%
+\RequirePackage{pscelementseps}
+%%%% 回路要素 %%%%
+%
+% 方向を表す文字を角度に変換
+\def\psc@dirtodeg#1#2{%
+\ifx#1r \gdef#2{0}
+\else
+\ifx#1t \gdef#2{90}
+\else
+\ifx#1l \gdef#2{180}
+\else
+\ifx#1b \gdef#2{270} \fi
+\fi
+\fi
+\fi%
+}
+%
+% 処理を共通化できる回路要素 #3: 向き. #4: 素子名.
+\def\psc@element(#1,#2)[#3]#4{%
+\psc@dirtodeg{#3}{\psc@deg}
+\immediate\write\psc@epsfile{#1 #2 \psc@deg\space #4}%
+}
+%
+% 抵抗
+\def\R(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]R%
+}
+% 可変抵抗 #1: 2 or 3 (端子数) #5: tならばトリマ, 省略時はボリューム
+\def\VR#1(#2,#3)[#4]{%
+\@ifnextchar[{\psc@VR#1(#2,#3)[#4]}{\psc@VR#1(#2,#3)[#4][]}%
+}
+\def\psc@VR#1(#2,#3)[#4][#5]{%
+	\ifnum#1=2 \def\psc@type{_2} \else \def\psc@type{_3}\fi
+	\psc@dirtodeg{#4}{\psc@deg}
+	\def\psc@trim{0}
+	\ifx#5t \def\psc@trim{1} \fi
+	\immediate\write\psc@epsfile{#2 #3 \psc@deg\space \psc@trim\space VR\psc@type}%
+}
+% 四角抵抗
+\def\Z(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]Z%
+}
+% キャパシタ
+\def\C(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]C%
+}
+% 可変キャパシタ
+\def\VC(#1,#2)[#3]{%
+\@ifnextchar[{\psc@VC(#1,#2)[#3]}{\psc@VC(#1,#2)[#3][0]}%
+}
+\def\psc@VC(#1,#2)[#3][#4]{%
+	\psc@dirtodeg{#3}{\psc@deg}
+	\def\psc@trim{0}
+	\ifx#4t \def\psc@trim{1} \fi
+	\immediate\write\psc@epsfile{#1 #2 \psc@deg\space \psc@trim\space VC}%
+}
+% ケミコン #4: +の描画位置 0--4 省略時は0
+\def\CC(#1,#2)[#3]{%
+\@ifnextchar[{\@CC(#1,#2)[#3]}{\psc@element(#1,#2)[#3]{0 CC}}%
+}
+\def\@CC(#1,#2)[#3][#4]{%
+\psc@element(#1,#2)[#3]{#4 CC}%
+}
+%
+% コイル
+% 簡易指定: [#4]. #4: 鉄心 cを指定, 省略時はなし
+% 万能形: [#4](#5)[#6]. #4: 巻数, #5: タップ位置, #6 鉄心 #6略可
+\def\L(#1,#2)[#3]{%
+	\@ifnextchar[{\@L(#1,#2)[#3]}{\L@easy(#1,#2)[#3][a]}%
+}
+\def\@L(#1,#2)[#3][#4]{%
+	\@ifnextchar({\@Luniv(#1,#2)[#3][#4]}{\L@easy(#1,#2)[#3][#4]}%
+}
+\def\@Luniv(#1,#2)[#3][#4](#5){%
+	\@ifnextchar[{\L@univ(#1,#2)[#3][#4](#5)}{\L@univ(#1,#2)[#3][#4](#5)[a]}%
+}
+\def\L@easy(#1,#2)[#3][#4]{%
+	\psc@dirtodeg{#3}{\psc@deg}
+	\def\@core{0}
+	\ifx#4c \def\@core{2} \fi
+	\immediate\write\psc@epsfile{#1 #2 \psc@deg\space \@core\space L}%
+}
+%
+\def\L@univ(#1,#2)[#3][#4](#5)[#6]{%
+	\psc@dirtodeg{#3}{\psc@deg}
+	\def\@core{0}
+	\ifx#6c \def\@core{2} \fi
+	\immediate\write\psc@epsfile{gsave}%
+	\immediate\write\psc@epsfile{#1 #2 \psc@deg\space startfig}%
+	\immediate\write\psc@epsfile{0 0 0 #4 \@core\space L_univ}%
+	\ifx#5\empty \else
+	\expandafter\@for\expandafter\@str\expandafter:\expandafter=#5\do{\immediate\write\psc@epsfile{\@str\space tap}}
+	\fi
+	\immediate\write\psc@epsfile{grestore}%
+}
+%
+% トランス
+% [#4][#5][#6](#7)(#8)[#9] 順に1次巻数, 2次巻数, 2次側ずらし量, 1次側タップ, 2次側タップ, 鉄心 #9略可
+\def\T(#1,#2)[#3][#4][#5][#6](#7)(#8){%
+	\@ifnextchar[{\@T(#1,#2)[#3][#4][#5][#6](#7)(#8)}{\@T(#1,#2)[#3][#4][#5][#6](#7)(#8)[a]}%
+}
+\def\@T(#1,#2)[#3][#4][#5][#6](#7)(#8)[#9]{% #1:x, #2:y, #3:dir, #4:n_1, #5:n_2, #6:offset, #7:tap_1, #8:tap_2, #9:core.
+	\psc@dirtodeg{#3}{\psc@deg}
+	\def\@core{0}
+	\ifx#9c \def\@core{2} \fi
+	\immediate\write\psc@epsfile{gsave}%
+	\immediate\write\psc@epsfile{#1 #2 \psc@deg\space startfig}%
+	\immediate\write\psc@epsfile{0 0 0 #4 \@core\space L_univ}%
+	\ifx#7\empty \else
+	\expandafter\@for\expandafter\@str\expandafter:\expandafter=#7\do{\immediate\write\psc@epsfile{\@str\space tap}}
+	\fi
+	\immediate\write\psc@epsfile{gsave}%
+	\immediate\write\psc@epsfile{#5 #6 3 add add 3 180 startfig}%
+	\immediate\write\psc@epsfile{0 0 0 #5 0 L_univ}%
+	\ifx#8\empty \else
+	\expandafter\@for\expandafter\@str\expandafter:\expandafter=#8\do{\immediate\write\psc@epsfile{#5 \@str\space sub 1 add tap}}
+	\fi
+	\immediate\write\psc@epsfile{grestore}%
+	\immediate\write\psc@epsfile{grestore}%
+}
+% 電池
+% [#4] 電池の個数 略時は簡易指定ver
+\def\BATT(#1,#2)[#3]{%
+\@ifnextchar[{\@BATT(#1,#2)[#3]}{\psc@element(#1,#2)[#3]{BATT}}%
+}
+\def\@BATT(#1,#2)[#3][#4]{%
+\psc@dirtodeg{#3}{\psc@deg}
+\immediate\write\psc@epsfile{#1 #2 \psc@deg\space #4 BATT_univ}%
+}
+% GND
+% #3 種類 s: 信号signal, c: 筐体chassis, e: 接地earth
+\def\GND(#1,#2)#3{%
+	\ifx#3s \def\psc@type{1} \else\ifx#3c\def\psc@type{2} \else \def\psc@type{3}\fi\fi
+	\immediate\write\psc@epsfile{#1 #2 GND\psc@type}%
+}
+%
+% V_{CC}, V_{EE}
+\def\Vcc(#1,#2){%
+\@ifnextchar\bgroup{\@Vcc(#1,#2)}{\@Vcc(#1,#2){$\mathrm{V_{CC}}$}}}
+%
+\def\@Vcc(#1,#2)#3{%
+\offset*(#1,#2)
+\wire(0,0)(0,1)
+\wire(-1,1)(1,1)
+\joint(0,1)
+\putstr(0,2)[b](0,-0.5){#3}
+\offset*(-#1,-#2)%
+}
+%
+\def\Vee(#1,#2){%
+\@ifnextchar\bgroup{\@Vee(#1,#2)}{\@Vee(#1,#2){$\mathrm{V_{EE}}$}}}
+%
+\def\@Vee(#1,#2)#3{%
+\offset*(#1,#2)
+\wire(0,0)(0,-1)
+\wire(-1,-1)(1,-1)
+\joint(0,-1)
+\putstr(0,-2)[t](0,0.5){#3}
+\offset*(-#1,-#2)%
+}
+%
+% 交流電圧源
+\def\AC(#1,#2)[#3]{% AC power supply.
+	\psc@element(#1,#2)[#3]{AC}%
+}
+% 三相交流電圧源Y結線
+\def\ACstar(#1,#2){%
+	\immediate\write\psc@epsfile{#1 #2 AC_3Y}%
+}
+% メータ
+% #4 円内の文字
+\def\meter(#1,#2)[#3]#4{%
+	\psc@element(#1,#2)[#3]{meter}%
+	\ifx#3r \putstr(#1,#2)(2,0){#4} \fi
+	\ifx#3l \putstr(#1,#2)(-2,0){#4} \fi
+	\ifx#3t \putstr(#1,#2)(0,2){#4} \fi
+	\ifx#3b \putstr(#1,#2)(0,-2){#4} \fi%
+}
+% 電流源
+\def\current(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]{current}%
+}
+% スイッチ(オルタネート)
+\def\SW(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]{sw}%
+}
+% スイッチ(モーメンタリ)
+\def\pushSW(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]{pushsw}%
+}
+% トグルSW
+%#4 direction of NC terminal. l: left side seen from common terminal, r: right side.
+\def\toggleSW(#1,#2)[#3][#4]{%
+	\psc@dirtodeg{#3}{\psc@deg}%
+	\ifx#4l \def\psc@dir{1} \else \ifx#4r \def\psc@dir{-1} \fi \fi
+	\immediate\write\psc@epsfile{#1 #2 \psc@deg\space\psc@dir\space togglesw}%
+}
+% トグルSW(モーメンタリ)
+\def\pushtoggleSW(#1,#2)[#3][#4]{%
+	\psc@dirtodeg{#3}{\psc@deg}%
+	\ifx#4l \def\psc@dir{1} \else \ifx#4r \def\psc@dir{-1} \fi \fi
+	\immediate\write\psc@epsfile{#1 #2 \psc@deg\space\psc@dir\space pushtogglesw}%
+}
+% ダイオード
+\def\D(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]{D}%
+}
+% ツェナーダイオード
+\def\ZD(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]{ZD}%
+}
+% ショットキーバリアダイオード
+\def\SBD(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]{SBD}%
+}
+% 可変容量ダイオード
+\def\VCD(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]{VCD}%
+}
+% 発光ダイオード
+\def\LED(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]{LED}%
+}
+% フォトダイオード
+\def\PD(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]{PD}%
+}
+% ダイオードブリッジ
+\def\DBridge(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]{DBridge}%
+}
+% サイリスタ
+\def\SCR(#1,#2)[#3][#4]{%
+	\psc@dirtodeg{#3}{\psc@deg}%
+	\immediate\write\psc@epsfile{#1 #2 \psc@deg\space (#4) SCR}%
+}
+% 水晶
+\def\xtal(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]{xtal}%
+}
+% クリスタルイヤホン or セラミック発音体
+\def\xtalsp(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]{xtalsp}%
+}
+% セラレゾ(セラロック)
+\def\ceralock(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]{ceralock}%
+}
+% ダイナミックスピーカ
+\def\dynamicsp(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]{dynamicsp}%
+}
+% フューズ
+\def\fuse(#1,#2)[#3]{%
+	\psc@element(#1,#2)[#3]{fuse}%
+}
+%
+\def\psc@tr#1(#2,#3)[#4][#5]{%
+	\psc@dirtodeg{#4}{\psc@deg}
+	\def\psc@pn{}
+	\def\psc@ed{}
+	\ifx#1{FET} \def\psc@rl{(c)} \else \def\psc@rl{} \fi
+	\@tfor\@ch:=#5\do{%
+		\if\@ch n \def\psc@pn{(n)}
+		\else
+			\if\@ch p \def\psc@pn{(p)}
+			\else
+				\if\@ch l \def\psc@rl{(l)}
+				\else
+					\if\@ch r \def\psc@rl{(r)}
+					\else
+						\if\@ch e \def\psc@ed{(e)}
+						\else
+							\if\@ch d \def\psc@ed{(d)}
+							\else
+								\if\@ch c \def\psc@rl{(c)}
+								\fi
+							\fi
+						\fi
+					\fi
+				\fi
+			\fi
+		\fi%
+	}
+	\immediate\write\psc@epsfile{#2 #3 \psc@deg\space \psc@ed\space \psc@pn\space \psc@rl\space #1}%
+}
+% トランジスタ #4はn or p, and l or r
+\def\TR(#1,#2)[#3][#4]{%
+\psc@tr{TR}(#1,#2)[#3][#4]%
+}
+% JFET #4はn or p, and l or r or c
+\def\FET(#1,#2)[#3][#4]{% FET
+\psc@tr{FET}(#1,#2)[#3][#4]%
+}
+% MOSFET #4はn or p, and l or r, and e or d
+\def\MOSFET(#1,#2)[#3][#4]{% MOSFET
+\psc@tr{MOSFET}(#1,#2)[#3][#4]%
+}
+% 簡易MOSFET #4はn or p
+\def\MOSTR(#1,#2)[#3][#4]{%
+\psc@tr{MOSTR}(#1,#2)[#3][#4]%
+}
+% npnダーリントントランジスタ #4はl or r
+\def\npnnpn(#1,#2)[#3][#4]{%
+\psc@tr{npnnpn}(#1,#2)[#3][#4]%
+}
+%
+%OP-Amp
+%#4: r -> '+' is right side seen from output terminal. l -> right side. c: Vcc is drawn, e: Vee is drawn, v: both Vcc and Vee are drawn.
+%
+\def\OPAmp(#1,#2)[#3][#4]{%
+	\psc@dirtodeg{#3}{\psc@deg}
+	\def\psc@vcc{0}
+	\@tfor\@ch:=#4\do{%
+		\if\@ch l \def\psc@dir{-1}
+		\else
+			\if\@ch r \def\psc@dir{1}
+			\else
+				\if\@ch v \def\psc@vcc{3}
+				\else
+					\if\@ch c \def\psc@vcc{1}
+					\else
+						\if\@ch e \def\psc@vcc{2} \fi
+					\fi
+				\fi
+			\fi
+		\fi%
+	}
+	\immediate\write\psc@epsfile{#1 #2 \psc@deg\space \psc@dir\space \psc@vcc\space OPAmp}%
+}
+%Operational Transconductance Amp
+%#4: r -> '+' is right side seen from output terminal. l -> right side. v: Vcc, Vee are drawn.
+%#5:  r -> reference current terminal is drawn to left right side seen from output, l -> left side.
+%
+\def\OTAmp(#1,#2)[#3][#4][#5]{%
+	\psc@dirtodeg{#3}{\psc@deg}
+	\def\psc@vcc{0}
+	\@tfor\@ch:=#4\do{%
+		\if\@ch l \def\psc@dir{-1}
+		\else
+			\if\@ch r \def\psc@dir{1}
+			\else
+				\if\@ch v \def\psc@vcc{3}
+				\else
+					\if\@ch c \def\psc@vcc{1}
+					\else
+						\if\@ch e \def\psc@vcc{2} \fi
+					\fi
+				\fi
+			\fi
+		\fi%
+	}
+	\ifx#5r \def\psc@Idir{1} \else \ifx#5l \def\psc@Idir{-1} \fi \fi
+	\immediate\write\psc@epsfile{#1 #2 \psc@deg\space \psc@dir\space \psc@vcc\space \psc@Idir\space OTAmp}%
+}
+%
+% バッファ or NOT
+% #4: n 否定入力 #5: n 否定出力 #6: 電源 v: 両側 c: 出力から見て右側のみ e: 出力から見て左側のみ
+\def\BUF(#1,#2)[#3]#4#5{%
+\@ifnextchar[{\psc@BUF(#1,#2)[#3]#4#5}{\psc@BUF(#1,#2)[#3]#4#5[]}%
+}
+\def\psc@BUF(#1,#2)[#3]#4#5[#6]{%
+	\ifx#4n \def\psc@inot{1} \else \def\psc@inot{0} \fi
+	\ifx#5n \def\psc@onot{1} \else \def\psc@onot{0} \fi
+	\ifx#6v \def\psc@vcc{3} \else \ifx#6c \def\psc@vcc{1} \else \ifx#6e \def\psc@vcc{2} \else \def\psc@vcc{0} \fi\fi\fi
+	\psc@dirtodeg{#3}{\psc@deg}
+	\immediate\write\psc@epsfile{#1 #2 \psc@deg\space \psc@inot\space \psc@onot\space \psc@vcc\space BUF}%
+}
+\def\psc@digital(#1,#2)[#3]#4#5#6{%
+\@ifnextchar[{\psc@@digital(#1,#2)[#3]{#4}{#5}{#6}}{\psc@@digital(#1,#2)[#3]{#4}{#5}{#6}[0]}
+}
+% 2入力以上の論理素子 AND OR XOR
+% (#1,#2)[#3]#4#5#6[#7] 万能形
+% (#1,#2)[#3][#4][#7] 簡易指定
+% #4 入力端子パタン #5 出力端子 #6 ゲート種類 #7 電源
+\def\psc@@digital(#1,#2)[#3]#4#5#6[#7]{%
+	\psc@dirtodeg{#3}{\psc@deg}
+	\ifx#5n \def\psc@onot{1} \else \def\psc@onot{0} \fi
+	\ifx#7v \def\psc@vcc{3} \else \ifx#7c \def\psc@vcc{1} \else \ifx#7e \def\psc@vcc{2} \else \def\psc@vcc{0} \fi\fi\fi
+	\immediate\write\psc@epsfile{#1 #2 \psc@deg\space (#4) \psc@onot\space \psc@vcc\space #6}%
+}
+\def\AND(#1,#2)[#3]{%
+\@ifnextchar[{\psc@ANDeasy(#1,#2)[#3]}{\psc@AND(#1,#2)[#3]}%
+}
+\def\psc@AND(#1,#2)[#3]#4#5{%
+\psc@digital(#1,#2)[#3]{#4}{#5}{AND}%
+}
+\def\OR(#1,#2)[#3]{%
+\@ifnextchar[{\psc@OReasy(#1,#2)[#3]}{\psc@OR(#1,#2)[#3]}%
+}
+\def\psc@OR(#1,#2)[#3]#4#5{%
+\psc@digital(#1,#2)[#3]{#4}{#5}{OR}%
+}
+%
+\def\@multichar#1#2#3{% repeat #2 for #3 times.
+\expandafter\xdef\expandafter#1\expandafter{#1#2}%
+\@tempcnta=#3
+\advance \@tempcnta -1
+\ifnum \@tempcnta>0
+\@multichar{#1}{#2}{\@tempcnta}
+\fi%
+}
+%
+\def\psc@ANDeasy(#1,#2)[#3][#4]{%
+\def\psc@np{}
+\@multichar{\psc@np}{p}{#4}
+\psc@digital(#1,#2)[#3]{\psc@np}{p}{AND}%
+}
+\def\psc@OReasy(#1,#2)[#3][#4]{%
+\def\psc@np{}
+\@multichar{\psc@np}{p}{#4}
+\psc@digital(#1,#2)[#3]{\psc@np}{p}{OR}%
+}
+\def\NAND(#1,#2)[#3][#4]{%
+\def\psc@np{}
+\@multichar{\psc@np}{p}{#4}
+\psc@digital(#1,#2)[#3]{\psc@np}{n}{AND}%
+}
+\def\NOR(#1,#2)[#3][#4]{%
+\def\psc@np{}
+\@multichar{\psc@np}{p}{#4}
+\psc@digital(#1,#2)[#3]{\psc@np}{n}{OR}%
+}
+\def\XOR(#1,#2)[#3][#4]{%
+\def\psc@np{}
+\@multichar{\psc@np}{p}{#4}
+\psc@digital(#1,#2)[#3]{\psc@np}{p}{XOR}%
+}
+\def\XNOR(#1,#2)[#3][#4]{%
+\def\psc@np{}
+\@multichar{\psc@np}{p}{#4}
+\psc@digital(#1,#2)[#3]{\psc@np}{n}{XOR}%
+}
+% NOT
+% (#1,#2)[#3][#4] #4 v, c, e or abbreviated
+\def\NOT(#1,#2)[#3]{%
+\BUF(#1,#2)[#3]pn%
+}
+%
+%
+% 測定系描画用の, 測定器とか.
+% (pscircuitから分離予定, pscinstruments.sty?)
+%
+% プローブ. 基準点は探針の尖端.
+%
+\def\probe(#1,#2)[#3]{%
+\offset*(#1,#2)
+\psc@dirtodeg{#3}{\psc@deg}
+\immediate\write\psc@epsfile{\psc@deg\space rotate}
+\edef\@@tempwidth{\@linewidth}
+\@mul{\@linewidth}{3}{\@tempwidth}
+\setlinewidth{\@tempwidth}
+\immediate\write\psc@epsfile{0 setlinecap newpath 0 0 moveto 0.5 0 lineto stroke 1 setlinecap}
+\setlinewidth{\@@tempwidth}
+\immediate\write\psc@epsfile{1 setgray newpath 0.5 -0.5 moveto 2.5 -0.5 lineto 2.5 0.5 lineto 0.5 0.5 lineto closepath fill}
+\immediate\write\psc@epsfile{newpath 2.5 -1 moveto 2.5 1 lineto 3.5 1 lineto 3.5 -1 lineto closepath fill}
+\immediate\write\psc@epsfile{newpath 3.5 -0.5 moveto 3.5 0.5 lineto 5.5 0.5 lineto 5.5 -0.5 lineto closepath fill}
+\immediate\write\psc@epsfile{0 setgray newpath 0.5 -0.5 moveto 2.5 -0.5 lineto 2.5 0.5 lineto 0.5 0.5 lineto closepath stroke}
+\immediate\write\psc@epsfile{newpath 2.5 -1 moveto 2.5 1 lineto 3.5 1 lineto 3.5 -1 lineto closepath stroke}
+\immediate\write\psc@epsfile{newpath 3.5 -0.5 moveto 3.5 0.5 lineto 5.5 0.5 lineto 5.5 -0.5 lineto closepath stroke}
+\wire(5.5,0)(6,0)
+\immediate\write\psc@epsfile{-\psc@deg\space rotate}
+\offset*(-#1,-#2)%
+}
+%
+\def\@instrstrsize{\tiny}
+%
+% オシロスコープ 2ch
+% モデル: 岩通SS-7802A
+% 基準点: 筐体の左下
+\def\oscilloscope(#1,#2){%
+\offset*(#1,#2)
+\rectangle(0,0)(11,6)
+\rectangle(0.5,1)(5.5,5)
+\wire(7,1)(7,-1)
+\wire(9,1)(9,-1)
+\term(7,1)
+\term(9,1)
+\putstr(7,2)[b](-0.125,0){\@instrstrsize CH1}
+\putstr(9,2)[b](0.125,0){\@instrstrsize CH2}
+\offset*(-#1,-#2)%
+}
+%
+% トラッキング電源
+% モデル: 菊水PMM35-1.2DU
+%
+\def\trackingpowersource(#1,#2){%
+\offset*(#1,#2)
+\rectangle(0,0)(8,6)
+\wire(1,1)(1,-1)
+\wire(3,1)(3,-1)
+\wire(5,1)(5,-1)
+\term(1,1)
+\term(3,1)
+\term(5,1)
+\putstr(1,2)[b]{\@instrstrsize G}
+\putstr(3,2)[b]{\@instrstrsize $+$}
+\putstr(5,2)[b]{\@instrstrsize $-$}
+\offset*(-#1,-#2)%
+}
+%
+% オシレータ
+% モデル: KENWOOD AG-203D
+%
+\def\oscillator(#1,#2){%
+\offset*(#1,#2)
+\rectangle(0,0)(6,6)
+\wire(2,1)(2,-1)
+\wire(4,1)(4,-1)
+\term(2,1)
+\term(4,1)
+\putstr(2,2)[b]{\@instrstrsize G}
+\putstr(4,2)[b]{\@instrstrsize OUT}
+\offset*(-#1,-#2)%
+}
+%
+% デジマル
+% モデル: 岩通 VOAC7521
+%
+\def\DMM(#1,#2){%
+\offset*(#1,#2)
+\rectangle(0,0)(9,6)
+\wire(1,1)(-1,1)
+\wire(1,3)(-1,3)
+\term(1,1)
+\term(1,3)
+\putstr(2,3)[l]{\tiny $+$}
+\putstr(2,1)[l]{\tiny $-$}
+\offset*(-#1,-#2)%
+}
