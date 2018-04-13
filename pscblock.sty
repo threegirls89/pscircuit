@@ -31,5 +31,16 @@
 \rectangle[c](#1,#2)(#3,#4)
 \putstr(#1,#2)[c]{#5}%
 }
-% 無限に伸びる折れ矢印とかもほしい (wireの先をarrowにしたやつ)
-
+% 三角形のAmp記号 (x,y)[direction](width,height)
+\def\blockamp(#1,#2)[#3](#4,#5){%
+\def\psc@blockampangle{0}
+\ifx#3t \def\psc@blockampangle{90}
+\else
+\ifx#3l \gdef\psc@blockampangle{180}
+\else
+\ifx#3b \gdef\psc@blockampangle{270} \fi
+\fi
+\fi%
+\immediate\write\psc@epsfile{gsave #1 #2 translate \psc@blockampangle\space rotate}
+\immediate\write\psc@epsfile{newpath 0.5 #4 mul 0 moveto -1 #4 mul -0.5 #5 mul rlineto 0 #5 rlineto closepath stroke}%
+}
